@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", sans-serif;
+
+  --color-page: #F5F0E8;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F0EBE3;
+  --color-surface-dim: #1A1A1A;
+
+  --color-text-primary: #2C2417;
+  --color-text-secondary: #6B5E4F;
+  --color-text-muted: #9C8F80;
+
+  --color-olive: #8B7D3C;
+  --color-olive-hover: #7A6D34;
+
+  --color-hook: #7C5CBF;
+  --color-connection: #2D8B5F;
+  --color-fetch: #3B7DD8;
+  --color-direction: #D4735E;
+
+  --color-border: #E0D8CC;
+  --color-border-hover: #C8BFB0;
+  --color-border-focus: #8B7D3C;
+
+  --color-stage-done: #2D8B5F;
+  --color-stage-current: #8B7D3C;
+  --color-stage-future: #D4CCC0;
+
+  --color-cat-body: #C4A882;
+  --color-cat-body-dark: #A68B6B;
+  --color-cat-inner-ear: #E8B4A0;
+  --color-cat-nose: #D4735E;
+  --color-cat-eyes: #2C2417;
+  --color-cat-pupil: #1A1510;
+  --color-cat-paws: #D4C4A8;
+  --color-cat-cheek: #E8B4A0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: transparent;
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  user-select: none;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
