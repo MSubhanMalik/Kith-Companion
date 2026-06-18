@@ -4,6 +4,7 @@ import { Robot } from './components/robot/Robot'
 import { Avatar } from './components/avatar/Avatar'
 import { Boss } from './components/boss/Boss'
 import { MessageWindow } from './MessageWindow'
+import { AppRouter } from './components/app/AppRouter'
 import type { BubbleType } from './components/cat/CatBubble'
 import { useCatStore } from './stores/cat'
 import { usePetStore } from './stores/pet'
@@ -16,6 +17,10 @@ declare global {
       showMessage: (data: Record<string, unknown>) => void
       hideMessage: () => void
       onMessageAction: (cb: (action: string) => void) => void
+      openApp: () => void
+      openAppRoute: (route: string) => void
+      getFilePath: (file: File) => string
+      readFile: (filePath: string) => void
     }
   }
 }
@@ -94,11 +99,11 @@ function PetApp() {
   const reactionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    window.electronAPI?.onMessageAction((action) => {
+    window.electronAPI?.onMessageAction(() => {
       setBubbleVisible(false)
       window.electronAPI?.hideMessage()
       setState('idle')
-      console.log('action:', action)
+      window.electronAPI?.openApp()
     })
   }, [setState])
 
@@ -171,33 +176,22 @@ function PetApp() {
       return
     }
 
-    const hasReadable = files.some((f) => isReadableFile(f.name))
+    const readableFile = files.find((f) => isReadableFile(f.name))
     setDragOver(false)
-    if (hasReadable) {
+    if (readableFile) {
       playNom(pet)
       reactThenIdle('eating', 2000)
+      const filePath = window.electronAPI?.getFilePath(readableFile) ?? ''
+      setTimeout(() => {
+        if (filePath) window.electronAPI?.readFile(filePath)
+        setState('thinking')
+      }, 1500)
     } else {
       playDisgust(pet)
       reactThenIdle('disgusted', 2000)
     }
   }, [reactThenIdle])
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (bubbleVisible || dragOver || state === 'eating' || state === 'disgusted' || state === 'hungry') return
-      const pick = EMOTES[Math.floor(Math.random() * EMOTES.length)]
-      setState('hungry')
-      playMeow(pet)
-      window.electronAPI?.showMessage({ kind: 'emote', emoji: pick.emoji, emoteText: pick.text })
-
-      setTimeout(() => {
-        window.electronAPI?.hideMessage()
-        setState('idle')
-      }, 3000)
-    }, 60000)
-
-    return () => clearInterval(timer)
-  }, [bubbleVisible, dragOver, state, setState])
 
   const handleClick = useCallback(() => {
     if (didDrag.current) return
@@ -265,7 +259,7 @@ function PetApp() {
 function App() {
   const route = getRoute()
   if (route === '#message') return <MessageWindow />
-  if (route === '#pet' || route === '#cat') return <PetApp />
+  if (route.startsWith('#app')) return <AppRouter />
   return <PetApp />
 }
 

@@ -1,0 +1,20 @@
+import type { ReactNode } from 'react'
+import { NavBar } from './NavBar'
+
+interface AppShellProps {
+  children: ReactNode
+  currentRoute: string
+  onNavigate: (route: string) => void
+}
+
+export function AppShell({ children, currentRoute, onNavigate }: AppShellProps) {
+  return (
+    <div className="min-h-screen bg-page flex flex-col overflow-auto">
+      <div className="h-14 shrink-0" />
+      <NavBar currentRoute={currentRoute} onNavigate={onNavigate} />
+      <main className="flex-1 w-full max-w-lg mx-auto px-10 py-8">
+        {children}
+      </main>
+    </div>
+  )
+}
