@@ -8,12 +8,24 @@ const colorMap = {
 
 interface BadgeProps {
   label: string
-  color: keyof typeof colorMap
+  color?: keyof typeof colorMap
+  customColor?: { bg: string; text: string }
 }
 
-export function Badge({ label, color }: BadgeProps) {
+export function Badge({ label, color, customColor }: BadgeProps) {
+  if (customColor) {
+    return (
+      <span
+        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium"
+        style={{ backgroundColor: customColor.bg, color: customColor.text }}
+      >
+        {label}
+      </span>
+    )
+  }
+
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium ${colorMap[color]}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium ${colorMap[color ?? 'olive']}`}>
       {label}
     </span>
   )

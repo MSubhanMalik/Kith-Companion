@@ -16,7 +16,7 @@ export function Input({ label, hint, placeholder, value, onChange }: InputProps)
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-border bg-surface px-5 py-3.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-border-focus transition-colors duration-150"
+        className="rounded-xl border border-border bg-transparent px-5 py-3.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-border-focus transition-colors duration-150"
       />
     </div>
   )

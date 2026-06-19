@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { ReactNode } from 'react'
 
 interface PageTransitionProps {
-  routeKey: string
+  routeKey?: string
   children: ReactNode
 }
 
@@ -10,7 +10,7 @@ export function PageTransition({ routeKey, children }: PageTransitionProps) {
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={routeKey}
+        key={routeKey ?? 'page'}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}

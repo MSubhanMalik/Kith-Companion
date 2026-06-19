@@ -3,27 +3,27 @@ interface NavBarProps {
   onNavigate: (route: string) => void
 }
 
-const NAV_ITEMS = [
-  { route: 'today', label: 'Today' },
-  { route: 'roadmap', label: 'Roadmap' },
-  { route: 'brain', label: 'Brain' },
+const NAV = [
+  { route: 'home', label: 'Today' },
+  { route: 'week', label: 'Week' },
+  { route: 'progress', label: 'Progress' },
   { route: 'settings', label: 'Settings' },
 ]
 
 export function NavBar({ currentRoute, onNavigate }: NavBarProps) {
   return (
-    <nav className="flex items-center justify-center gap-1 px-8 py-2.5 border-b border-border">
-      {NAV_ITEMS.map((item) => (
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-page/80 backdrop-blur-sm flex items-end justify-center gap-1 z-50 pb-2">
+      {NAV.map(({ route, label }) => (
         <button
-          key={item.route}
-          onClick={() => onNavigate(item.route)}
-          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 cursor-pointer ${
-            currentRoute === item.route
-              ? 'bg-olive/10 text-olive'
-              : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+          key={route}
+          onClick={() => onNavigate(route)}
+          className={`px-4 py-1.5 rounded-lg text-sm transition-colors cursor-pointer ${
+            currentRoute === route
+              ? 'text-text-primary font-semibold'
+              : 'text-text-muted hover:text-text-secondary'
           }`}
         >
-          {item.label}
+          {label}
         </button>
       ))}
     </nav>
