@@ -70,7 +70,7 @@ function createWindows() {
     minHeight: 520,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
-    backgroundColor: '#111114',
+    backgroundColor: '#F5F0E8',
     show: false,
     webPreferences: {
       nodeIntegration: false,

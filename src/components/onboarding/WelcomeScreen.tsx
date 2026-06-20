@@ -26,12 +26,12 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         >
           Tell me your goals.
           <br />
-          I'll build your week.
+          I'll make them happen.
         </h1>
 
         <p className="text-text-secondary mb-12 leading-relaxed">
-          You set the destination. I handle the schedule,
-          the reminders, and the gentle nudges.
+          You set the goals. I build the path, schedule the work,
+          and nudge you when you drift.
         </p>
 
         <Button variant="primary" size="lg" onClick={onNext} label="Let's go" />

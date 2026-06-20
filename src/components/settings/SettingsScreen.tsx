@@ -1,70 +1,52 @@
 import { PageTransition } from '../ui/PageTransition'
-import { Button } from '../ui/Button'
 import { Cat } from '../cat/Cat'
 import { motion } from 'framer-motion'
 
 export function SettingsScreen() {
   return (
     <PageTransition>
-      <div className="max-w-[28rem] mx-auto pb-12 pt-2">
+      <div className="pt-6 pb-12 max-w-[26rem]">
         <motion.div
-          className="flex items-center gap-3 mb-10"
+          className="flex items-center gap-3 mb-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <Cat state="idle" size={28} />
-          <p className="text-sm text-text-muted">Settings</p>
+          <Cat state="idle" size={26} />
+          <span className="text-sm text-text-muted">Settings</span>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-10">
-          <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-5">Goals</p>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-12">
+          <p className="text-xs text-text-muted/40 mb-4">goals</p>
           {[
-            { label: 'Earn $10K/month from freelancing', color: '#C4745C', hours: '16h/wk' },
-            { label: 'Launch MVP with 100 users', color: '#7A9A6D', hours: '10h/wk' },
-            { label: 'Build LinkedIn to 10K followers', color: '#B08455', hours: '6h/wk' },
+            { label: 'Earn $10K/month from freelancing', color: '#C4745C', hours: '16h' },
+            { label: 'Launch MVP with 100 users', color: '#7A9A6D', hours: '10h' },
+            { label: 'Build LinkedIn to 10K', color: '#B08455', hours: '6h' },
           ].map((g, i) => (
-            <div key={i} className="flex items-center gap-4 py-3 border-b border-border/30">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }} />
-              <span className="text-sm text-text-primary flex-1">{g.label}</span>
-              <span className="text-xs text-text-muted">{g.hours}</span>
+            <div key={i} className="flex items-center justify-between py-2.5">
+              <span className="text-sm text-text-primary">{g.label}</span>
+              <span className="text-xs text-text-muted/40">{g.hours}/wk</span>
             </div>
           ))}
-          <button className="text-xs text-text-muted hover:text-olive mt-4 cursor-pointer">+ add goal</button>
+          <button className="text-xs text-text-muted/30 hover:text-olive mt-2 cursor-pointer">+ add</button>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-10">
-          <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-5">Non-negotiables</p>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-12">
+          <p className="text-xs text-text-muted/40 mb-4">non-negotiables</p>
           {[
-            { label: 'Work', detail: '9 AM – 5 PM · Mon–Fri' },
-            { label: 'Gym', detail: '6 PM – 7 PM · Mon–Fri' },
-            { label: 'Sleep', detail: '11 PM – 7 AM · Every day' },
+            { label: 'Work', detail: '9–5 · Mon–Fri' },
+            { label: 'Gym', detail: '6–7 PM · Mon–Fri' },
+            { label: 'Sleep', detail: '11 PM–7 AM' },
           ].map((b, i) => (
-            <div key={i} className="flex items-center justify-between py-3 border-b border-border/30">
+            <div key={i} className="flex items-center justify-between py-2.5">
               <span className="text-sm text-text-primary">{b.label}</span>
-              <span className="text-xs text-text-muted">{b.detail}</span>
+              <span className="text-xs text-text-muted/40">{b.detail}</span>
             </div>
           ))}
-          <button className="text-xs text-text-muted hover:text-olive mt-4 cursor-pointer">+ add block</button>
+          <button className="text-xs text-text-muted/30 hover:text-olive mt-2 cursor-pointer">+ add</button>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mb-10">
-          <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-5">Schedule cycle</p>
-          <div className="flex gap-3">
-            {['Weekly', 'Monthly'].map(opt => (
-              <button
-                key={opt}
-                className={`px-4 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                  opt === 'Weekly' ? 'text-olive font-medium' : 'text-text-muted'
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
-          <Button variant="secondary" size="sm" label="Reset everything" />
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+          <button className="text-xs text-text-muted/30 hover:text-direction cursor-pointer">Reset everything</button>
         </motion.div>
       </div>
     </PageTransition>

@@ -6,7 +6,7 @@ interface NavBarProps {
 const NAV = [
   { route: 'home', label: 'Today' },
   { route: 'week', label: 'Week' },
-  { route: 'progress', label: 'Progress' },
+  { route: 'goals', label: 'Goals' },
   { route: 'settings', label: 'Settings' },
 ]
 
@@ -18,7 +18,7 @@ export function NavBar({ currentRoute, onNavigate }: NavBarProps) {
           key={route}
           onClick={() => onNavigate(route)}
           className={`px-4 py-1.5 rounded-lg text-sm transition-colors cursor-pointer ${
-            currentRoute === route
+            currentRoute === route || (route === 'goals' && currentRoute === 'goal')
               ? 'text-text-primary font-semibold'
               : 'text-text-muted hover:text-text-secondary'
           }`}
