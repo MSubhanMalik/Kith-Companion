@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { AppShell } from './AppShell'
-import { WelcomeScreen } from '../onboarding/WelcomeScreen'
-import { SetupScreen } from '../onboarding/SetupScreen'
-import { SchedulePreviewScreen } from '../onboarding/SchedulePreviewScreen'
 import { HomeScreen } from '../home/HomeScreen'
 import { EndOfDayScreen } from '../home/EndOfDayScreen'
 import { WeekScreen } from '../week/WeekScreen'
 import { GoalsListScreen } from '../goals/GoalsListScreen'
 import { GoalScreen } from '../goals/GoalScreen'
-import { SettingsScreen } from '../settings/SettingsScreen'
-import { useOnboardingStore } from '../../stores/onboarding'
+import { ProfileScreen } from '../profile/ProfileScreen'
 
 function getRoute(): string {
   return window.location.hash.replace('#app/', '').replace('#app', '') || 'home'
@@ -18,13 +14,8 @@ function getRoute(): string {
 
 export function AppRouter() {
   const [route, setRoute] = useState(getRoute)
-  const { step, isComplete, setStep, complete } = useOnboardingStore()
 
   useEffect(() => {
-    document.body.style.overflow = 'auto'
-    document.body.style.userSelect = 'auto'
-    document.body.style.background = 'var(--color-page)'
-
     const onHash = () => setRoute(getRoute())
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
@@ -35,16 +26,6 @@ export function AppRouter() {
     setRoute(r)
   }
 
-  if (!isComplete) {
-    return (
-      <AnimatePresence mode="wait">
-        {step === 'welcome' && <WelcomeScreen key="w" onNext={() => setStep('goals')} />}
-        {step === 'goals' && <SetupScreen key="s" onNext={() => setStep('preview')} onBack={() => setStep('welcome')} />}
-        {step === 'preview' && <SchedulePreviewScreen key="p" onLockIn={() => { complete(); nav('home') }} onBack={() => setStep('goals')} />}
-      </AnimatePresence>
-    )
-  }
-
   function screen() {
     switch (route) {
       case 'home': return <HomeScreen key="home" />
@@ -52,7 +33,7 @@ export function AppRouter() {
       case 'week': return <WeekScreen key="week" />
       case 'goals': return <GoalsListScreen key="goals" onGoalClick={() => nav('goal')} />
       case 'goal': return <GoalScreen key="goal" onBack={() => nav('goals')} />
-      case 'settings': return <SettingsScreen key="settings" />
+      case 'profile': return <ProfileScreen key="profile" />
       default: return <HomeScreen key="home" />
     }
   }

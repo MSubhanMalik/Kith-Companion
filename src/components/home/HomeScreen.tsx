@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { motion, Reorder } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Cat } from '../cat/Cat'
+import { ScreenHeader } from '../ui/ScreenHeader'
+import { FadeIn } from '../ui/FadeIn'
+import { SectionLabel } from '../ui/SectionLabel'
 import { TaskModal } from '../goals/TaskModal'
 import { useGoalsStore } from '../../stores/goals'
 import { getGoalColor } from '../../lib/colors'
@@ -78,22 +81,21 @@ export function HomeScreen() {
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
-        <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Cat state="idle" size={26} />
-          <span className="text-sm text-text-muted">Wednesday · {doneCount} of {tasks.length} done</span>
-          {doneCount >= tasks.length - 1 && (
-            <a href="#app/review" className="text-xs text-olive font-medium hover:text-olive-hover ml-auto cursor-pointer">Close the day →</a>
-          )}
-          {doneCount < tasks.length - 1 && (
-            <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive ml-auto cursor-pointer">review</a>
-          )}
-        </motion.div>
+        <ScreenHeader
+          catState="idle"
+          message={`Wednesday · ${doneCount} of ${tasks.length} done`}
+          right={
+            doneCount >= tasks.length - 1
+              ? <a href="#app/review" className="text-xs text-olive font-medium hover:text-olive-hover cursor-pointer">Close the day →</a>
+              : <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer">review</a>
+          }
+        />
 
-        <div className="grid grid-cols-[4rem_1fr_5.5rem_4rem] gap-x-3 text-[0.625rem] text-text-muted tracking-widest uppercase mb-2 px-1">
-          <span>Time</span>
-          <span>Task</span>
-          <span>Goal</span>
-          <span className="text-right">Status</span>
+        <div className="grid grid-cols-[4rem_1fr_5.5rem_4rem] gap-x-3 mb-2 px-1">
+          <SectionLabel>Time</SectionLabel>
+          <SectionLabel>Task</SectionLabel>
+          <SectionLabel>Goal</SectionLabel>
+          <SectionLabel className="text-right">Status</SectionLabel>
         </div>
 
         <Reorder.Group axis="y" values={tasks} onReorder={setTasks}>
@@ -152,12 +154,7 @@ export function HomeScreen() {
           />
         </div>
 
-        <motion.div
-          className="mt-10 grid grid-cols-3 gap-4"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <FadeIn delay={0.2} y={6} className="mt-10 grid grid-cols-3 gap-4">
           {goalsSummary.map((g, i) => {
             const pct = g.total > 0 ? (g.done / g.total) * 100 : 0
             return (
@@ -172,7 +169,7 @@ export function HomeScreen() {
               </div>
             )
           })}
-        </motion.div>
+        </FadeIn>
       </div>
 
       {selectedTask && (

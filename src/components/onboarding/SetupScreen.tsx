@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion'
+import { FadeIn } from '../ui/FadeIn'
+import { SectionLabel } from '../ui/SectionLabel'
 import { Button } from '../ui/Button'
 
 const MOCK_GOALS = [
@@ -22,31 +23,21 @@ export function SetupScreen({ onNext, onBack }: SetupScreenProps) {
   return (
     <div className="min-h-screen bg-page px-8 py-12">
       <div className="max-w-[32rem] mx-auto">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <FadeIn y={12}>
           <h1 className="text-2xl font-bold text-text-primary mb-2" style={{ letterSpacing: '-0.02em' }}>
             Two things I need from you.
           </h1>
           <p className="text-sm text-text-secondary mb-12">
             Your goals and the blocks I can't touch. That's it — I'll handle the rest.
           </p>
-        </motion.div>
+        </FadeIn>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-14"
-        >
-          <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-5">Your goals · ranked by priority</p>
+        <FadeIn delay={0.1} y={10} className="mb-14">
+          <SectionLabel className="mb-5">Your goals · ranked by priority</SectionLabel>
 
           <div className="flex flex-col gap-6">
             {MOCK_GOALS.map((goal, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 + i * 0.06 }}
-              >
+              <FadeIn key={i} delay={0.15 + i * 0.06}>
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center gap-1 pt-2">
                     <span className="text-lg font-bold text-text-muted">{i + 1}</span>
@@ -89,65 +80,40 @@ export function SetupScreen({ onNext, onBack }: SetupScreenProps) {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </FadeIn>
             ))}
 
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-sm text-text-muted hover:text-olive transition-colors cursor-pointer"
-            >
-              + add goal
-            </motion.button>
+            <FadeIn delay={0.4} y={0}>
+              <Button variant="ghost" size="sm" label="+ add goal" />
+            </FadeIn>
           </div>
-        </motion.div>
+        </FadeIn>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-14"
-        >
-          <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-5">Non-negotiables · I won't schedule over these</p>
+        <FadeIn delay={0.3} y={10} className="mb-14">
+          <SectionLabel className="mb-5">Non-negotiables · I won't schedule over these</SectionLabel>
 
           <div className="flex flex-col gap-3">
             {MOCK_BLOCKS.map((block, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 + i * 0.05 }}
-                className="flex items-center justify-between border-b border-border/40 pb-3"
-              >
+              <FadeIn key={i} delay={0.35 + i * 0.05} y={6}
+                className="flex items-center justify-between border-b border-border/40 pb-3">
                 <div>
                   <span className="text-text-primary font-medium">{block.label}</span>
                   <span className="text-xs text-text-muted ml-3">{block.days}</span>
                 </div>
                 <span className="text-sm text-text-secondary">{block.time}</span>
-              </motion.div>
+              </FadeIn>
             ))}
 
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.55 }}
-              className="text-sm text-text-muted hover:text-olive transition-colors cursor-pointer"
-            >
-              + add block
-            </motion.button>
+            <FadeIn delay={0.55} y={0}>
+              <Button variant="ghost" size="sm" label="+ add block" />
+            </FadeIn>
           </div>
-        </motion.div>
+        </FadeIn>
 
-        <motion.div
-          className="flex items-center justify-between"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-        >
-          <button onClick={onBack} className="text-sm text-text-muted hover:text-text-primary cursor-pointer">← back</button>
+        <FadeIn delay={0.6} y={0} className="flex items-center justify-between">
+          <Button variant="ghost" size="sm" label="← back" onClick={onBack} />
           <Button variant="primary" onClick={onNext} label="Build my schedule" />
-        </motion.div>
+        </FadeIn>
       </div>
     </div>
   )

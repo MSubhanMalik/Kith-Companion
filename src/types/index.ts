@@ -127,4 +127,4 @@ export interface Nudge {
   dismissed: boolean
 }
 
-export type OnboardingStep = 'welcome' | 'goals' | 'rank' | 'milestones' | 'blocks' | 'preview'
+export type OnboardingStep = 'welcome' | 'setup' | 'preview'

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Cat } from '../cat/Cat'
+import { FadeIn } from '../ui/FadeIn'
+import { Button } from '../ui/Button'
 import { exportWeeklySchedule } from '../../lib/export'
 type View = 'week' | 'month'
 
@@ -55,20 +57,20 @@ export function WeekScreen() {
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
-        <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <FadeIn y={0} className="flex items-center gap-3 mb-8">
           <Cat state="idle" size={26} />
           <button className="text-text-muted hover:text-text-primary cursor-pointer text-sm">←</button>
           <span className="text-sm text-text-muted">Jun 16 – 22</span>
           <button className="text-text-muted hover:text-text-primary cursor-pointer text-sm">→</button>
           <div className="flex items-center gap-3 ml-auto">
-            <button onClick={exportWeeklySchedule} className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer transition-colors">Export ↓</button>
+            <Button variant="ghost" size="sm" label="Export ↓" onClick={exportWeeklySchedule} />
             {(['week', 'month'] as const).map(v => (
               <button key={v} onClick={() => setView(v)}
                 className={`text-[0.625rem] px-2 py-1 rounded cursor-pointer transition-colors ${view === v ? 'text-text-primary font-medium' : 'text-text-muted hover:text-text-muted'}`}
               >{v}</button>
             ))}
           </div>
-        </motion.div>
+        </FadeIn>
 
         <AnimatePresence mode="wait">
           {view === 'week' ? (
@@ -81,12 +83,12 @@ export function WeekScreen() {
                     <div className="flex flex-col gap-4">
                       {col.tasks.length === 0 && <p className="text-[0.625rem] text-text-muted/50">—</p>}
                       {col.tasks.map((task, ti) => (
-                        <motion.div key={ti} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: di * 0.03 + ti * 0.03 }}>
+                        <FadeIn key={ti} delay={di * 0.03 + ti * 0.03} y={0}>
                           <p className={`text-[0.6875rem] leading-snug ${task.done ? 'line-through opacity-30' : ''}`} style={{ color: task.color }}>
                             {task.label}
                           </p>
                           <p className="text-[0.5625rem] text-text-muted/50 mt-0.5">{task.time}</p>
-                        </motion.div>
+                        </FadeIn>
                       ))}
                     </div>
                   </div>
@@ -101,14 +103,14 @@ export function WeekScreen() {
                 ))}
               </div>
               {MONTH.map((week, wi) => (
-                <motion.div key={wi} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: wi * 0.04 }} className="grid grid-cols-7 gap-x-2">
+                <FadeIn key={wi} delay={wi * 0.04} y={0} className="grid grid-cols-7 gap-x-2">
                   {week.days.map((day, di) => (
                     <div key={di} className={`py-3 text-center rounded-lg ${(day as typeof day & {today?: boolean}).today ? 'bg-olive/5' : ''}`}>
                       <p className={`text-sm ${(day as typeof day & {today?: boolean}).today ? 'text-olive font-semibold' : day.n > 0 ? 'text-text-primary' : 'text-text-muted/50'}`}>{day.d}</p>
                       {day.n > 0 && <p className="text-[0.5rem] text-text-muted mt-0.5">{day.n} tasks</p>}
                     </div>
                   ))}
-                </motion.div>
+                </FadeIn>
               ))}
             </motion.div>
           )}

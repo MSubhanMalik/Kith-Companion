@@ -1,29 +1,20 @@
-import type { Goal, Milestone, LifeBlock, ScheduledBlock } from '../types'
-import { generateWeekSchedule } from '../lib/scheduler'
+import type { Goal, Milestone, LifeBlock, ScheduledBlock, DayOfWeek } from '../types'
 
 export class SchedulerService {
-  generateWeek(weekOf: string, goals: Goal[], milestones: Milestone[], lifeBlocks: LifeBlock[]): ScheduledBlock[] {
-    return generateWeekSchedule(weekOf, goals, milestones, lifeBlocks)
+  generateWeek(_weekOf: string, _goals: Goal[], _milestones: Milestone[], _lifeBlocks: LifeBlock[]): ScheduledBlock[] {
+    return []
   }
 
-  rescheduleAfterCompletion(
-    currentBlocks: ScheduledBlock[],
-    completedBlockId: string,
-    _goals: Goal[]
-  ): ScheduledBlock[] {
-    return currentBlocks.map(b =>
-      b.id === completedBlockId ? { ...b, status: 'completed' as const } : b
-    )
+  rescheduleAfterCompletion(blocks: ScheduledBlock[], _completedBlockId: string, _goals: Goal[]): ScheduledBlock[] {
+    return blocks
   }
 
-  moveTask(blocks: ScheduledBlock[], taskId: string, newDay: ScheduledBlock['day'], newTime: string): ScheduledBlock[] {
-    return blocks.map(b =>
-      b.id === taskId ? { ...b, day: newDay, time: { ...b.time, start: newTime } } : b
-    )
+  moveTask(blocks: ScheduledBlock[], _taskId: string, _newDay: DayOfWeek, _newTime: string): ScheduledBlock[] {
+    return blocks
   }
 
-  removeTask(blocks: ScheduledBlock[], taskId: string): ScheduledBlock[] {
-    return blocks.filter(b => b.id !== taskId)
+  removeTask(blocks: ScheduledBlock[], _taskId: string): ScheduledBlock[] {
+    return blocks
   }
 }
 

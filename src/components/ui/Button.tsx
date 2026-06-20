@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 interface ButtonProps {
   label: string
   onClick?: () => void
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   fullWidth?: boolean
 }
@@ -11,7 +11,8 @@ interface ButtonProps {
 const variantClasses = {
   primary: 'bg-olive text-white hover:bg-olive-hover',
   secondary: 'bg-transparent text-text-primary border border-border hover:bg-surface-hover hover:border-border-hover',
-  ghost: 'bg-transparent text-text-secondary hover:bg-surface-hover',
+  ghost: 'bg-transparent text-text-muted hover:text-text-secondary hover:bg-surface-hover',
+  danger: 'bg-transparent text-direction hover:text-direction/80',
 }
 
 const sizeClasses = {

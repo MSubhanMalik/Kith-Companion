@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
-import { Cat } from '../cat/Cat'
+import { ScreenHeader } from '../ui/ScreenHeader'
+import { FadeIn } from '../ui/FadeIn'
+import { SectionLabel } from '../ui/SectionLabel'
 import { Button } from '../ui/Button'
 import { exportGoalSchedule } from '../../lib/export'
 import { useGoalsStore } from '../../stores/goals'
@@ -123,13 +125,10 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
-        <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Cat state="idle" size={26} />
-          <span className="text-sm text-text-muted">{done} of {tasks.length} done</span>
-        </motion.div>
+        <ScreenHeader catState="idle" message={`${done} of ${tasks.length} done`} />
 
         <div className="flex items-center justify-between mb-6">
-          <button onClick={onBack} className="text-xs text-text-muted hover:text-text-muted cursor-pointer">← back</button>
+          <Button variant="ghost" size="sm" label="← back" onClick={onBack} />
           <div className="flex items-center gap-3">
             <div className="flex gap-1">
               {(['plan', 'tasks'] as const).map(v => (
@@ -138,10 +137,8 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                 >{v}</button>
               ))}
             </div>
-            <button onClick={() => setShowPanel(!showPanel)} className={`text-[0.625rem] cursor-pointer transition-colors ${showPanel ? 'text-text-muted hover:text-olive' : 'text-olive'}`}>
-              {showPanel ? 'Hide panel' : 'Show panel'}
-            </button>
-            <button onClick={() => exportGoalSchedule(goalLabel)} className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer transition-colors">Export ↓</button>
+            <Button variant="ghost" size="sm" label={showPanel ? 'Hide panel' : 'Show panel'} onClick={() => setShowPanel(!showPanel)} />
+            <Button variant="ghost" size="sm" label="Export ↓" onClick={() => exportGoalSchedule(goalLabel)} />
             <Button variant="primary" size="sm" label="Adjust times" onClick={() => {}} />
           </div>
         </div>
@@ -170,7 +167,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                       setPlan(prev => prev.map((w, i) => i === wi ? { ...w, days: newDays } : w))
                     }
                     return (
-                      <motion.div key={wi} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: wi * 0.05 }} className="mb-8">
+                      <FadeIn key={wi} delay={wi * 0.05} y={6} className="mb-8">
                         <p className={`text-xs font-semibold mb-3 ${weekDone ? 'text-text-muted/50' : ''}`} style={!weekDone ? { color: goalColor } : {}}>
                           Week {week.week} {weekDone && '· done'}
                         </p>
@@ -193,7 +190,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                             </Reorder.Item>
                           ))}
                         </Reorder.Group>
-                      </motion.div>
+                      </FadeIn>
                     )
                   })}
                 </div>
@@ -213,12 +210,12 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
             <motion.div key="tasks" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="flex gap-6">
                 <div className="flex-1 min-w-0">
-                  <div className="grid grid-cols-[2.5rem_3rem_1fr_1fr_8rem_2rem] gap-x-4 text-[0.625rem] text-text-muted tracking-widest uppercase mb-3 border-b border-border/40 pb-2">
-                    <span>Wk</span>
-                    <span>Day</span>
-                    <span>Task</span>
-                    <span>Details</span>
-                    <span>Output</span>
+                  <div className="grid grid-cols-[2.5rem_3rem_1fr_1fr_8rem_2rem] gap-x-4 mb-3 border-b border-border/40 pb-2">
+                    <SectionLabel>Wk</SectionLabel>
+                    <SectionLabel>Day</SectionLabel>
+                    <SectionLabel>Task</SectionLabel>
+                    <SectionLabel>Details</SectionLabel>
+                    <SectionLabel>Output</SectionLabel>
                     <span />
                   </div>
 
@@ -226,24 +223,26 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                     const weekNum = Math.floor(i / 3) + 1
                     const showWeek = i % 3 === 0
                     return (
-                    <motion.div key={task.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
-                      className={`grid grid-cols-[2.5rem_3rem_1fr_1fr_8rem_2rem] gap-x-4 items-center py-3 border-b border-border/20 cursor-pointer transition-colors overflow-hidden ${selectedTask?.id === task.id ? 'bg-olive/[0.03]' : 'hover:bg-surface-hover'}`}
-                      onClick={() => setSelectedTask(task)}>
-                      <span className="text-xs pt-0.5 font-semibold" style={{ color: showWeek ? goalColor : 'transparent' }}>{showWeek ? weekNum : ''}</span>
-                      <span className={`text-xs pt-0.5 ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.day}</span>
-                      <span className={`text-sm ${task.done ? 'text-text-muted/50 line-through' : 'text-text-primary font-medium'}`}>{task.text}</span>
-                      <span className={`text-xs truncate ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.description || '—'}</span>
-                      <span className="text-xs truncate" style={{ color: task.done ? 'var(--color-text-muted)' : goalColor }}>{task.output || '—'}</span>
-                      <div className="flex justify-center pt-0.5">
-                        <motion.div className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer"
-                          style={task.done ? { backgroundColor: `${goalColor}18` } : { border: '1.5px solid var(--color-border)' }}
-                          onClick={e => { e.stopPropagation(); toggleDone(task.id) }}
-                          whileTap={{ scale: 1.4 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
-                          {task.done && <span className="text-[0.375rem]" style={{ color: goalColor }}>✓</span>}
-                        </motion.div>
+                    <FadeIn key={task.id} delay={i * 0.02} y={0}>
+                      <div
+                        className={`grid grid-cols-[2.5rem_3rem_1fr_1fr_8rem_2rem] gap-x-4 items-center py-3 border-b border-border/20 cursor-pointer transition-colors overflow-hidden ${selectedTask?.id === task.id ? 'bg-olive/[0.03]' : 'hover:bg-surface-hover'}`}
+                        onClick={() => setSelectedTask(task)}>
+                        <span className="text-xs pt-0.5 font-semibold" style={{ color: showWeek ? goalColor : 'transparent' }}>{showWeek ? weekNum : ''}</span>
+                        <span className={`text-xs pt-0.5 ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.day}</span>
+                        <span className={`text-sm ${task.done ? 'text-text-muted/50 line-through' : 'text-text-primary font-medium'}`}>{task.text}</span>
+                        <span className={`text-xs truncate ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.description || '—'}</span>
+                        <span className="text-xs truncate" style={{ color: task.done ? 'var(--color-text-muted)' : goalColor }}>{task.output || '—'}</span>
+                        <div className="flex justify-center pt-0.5">
+                          <motion.div className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer"
+                            style={task.done ? { backgroundColor: `${goalColor}18` } : { border: '1.5px solid var(--color-border)' }}
+                            onClick={e => { e.stopPropagation(); toggleDone(task.id) }}
+                            whileTap={{ scale: 1.4 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                            {task.done && <span className="text-[0.375rem]" style={{ color: goalColor }}>✓</span>}
+                          </motion.div>
+                        </div>
                       </div>
-                    </motion.div>
+                    </FadeIn>
                     )
                   })}
 
@@ -292,7 +291,7 @@ function TaskDetailPanel({ task, goalColor, onUpdate, onClose, onRemove, onToggl
   return (
     <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.15 }}>
       <div className="flex items-center justify-between mb-4">
-        <button onClick={onClose} className="text-[0.625rem] text-text-muted hover:text-text-secondary cursor-pointer">← notes</button>
+        <Button variant="ghost" size="sm" label="← notes" onClick={onClose} />
         <div className="flex items-center gap-2">
           <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center cursor-pointer"
             style={task.done ? { backgroundColor: `${goalColor}18` } : { border: '1.5px solid var(--color-border)' }}
@@ -327,7 +326,7 @@ function TaskDetailPanel({ task, goalColor, onUpdate, onClose, onRemove, onToggl
         </div>
       </div>
 
-      <button onClick={onRemove} className="text-[0.625rem] text-text-muted/50 hover:text-direction cursor-pointer">remove task</button>
+      <Button variant="danger" size="sm" label="remove task" onClick={onRemove} />
     </motion.div>
   )
 }
@@ -335,7 +334,7 @@ function TaskDetailPanel({ task, goalColor, onUpdate, onClose, onRemove, onToggl
 function NotesPanel({ notes, onNotesChange }: { notes: string; onNotesChange: (v: string) => void }) {
   return (
     <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.15 }}>
-      <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-3">Notes</p>
+      <SectionLabel className="mb-3">Notes</SectionLabel>
       <textarea value={notes} onChange={e => onNotesChange(e.target.value)} rows={12}
         className="w-full text-xs text-text-secondary leading-relaxed bg-transparent border-b border-border/40 pb-2 focus:outline-none focus:border-olive resize-none placeholder:text-text-muted/50"
         placeholder="Add notes..." />

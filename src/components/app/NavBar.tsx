@@ -7,7 +7,7 @@ const NAV = [
   { route: 'home', label: 'Today' },
   { route: 'week', label: 'Week' },
   { route: 'goals', label: 'Goals' },
-  { route: 'settings', label: 'Settings' },
+  { route: 'profile', label: 'Profile' },
 ]
 
 export function NavBar({ currentRoute, onNavigate }: NavBarProps) {

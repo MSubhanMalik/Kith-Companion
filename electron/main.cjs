@@ -200,6 +200,62 @@ function createWindows() {
     appWindow.webContents.executeJavaScript(`window.location.hash = '#app/${route}'`)
   })
 
+  ipcMain.handle('google-auth', async () => {
+    const GOOGLE_CLIENT_ID = '691765170991-r2ifupsq46pmfof1586794a8epbbbdgr.apps.googleusercontent.com'
+    const REDIRECT_URI = 'http://localhost'
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=id_token&scope=openid+email+profile&nonce=${Date.now()}`
+
+    return new Promise((resolve, reject) => {
+      const authWindow = new BrowserWindow({
+        width: 500,
+        height: 700,
+        show: true,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
+      })
+
+      authWindow.loadURL(authUrl)
+
+      authWindow.webContents.on('will-redirect', (event, url) => {
+        extractToken(event, url)
+      })
+
+      authWindow.webContents.on('will-navigate', (event, url) => {
+        extractToken(event, url)
+      })
+
+      authWindow.webContents.on('did-navigate', (event, url) => {
+        extractTokenFromUrl(url)
+      })
+
+      function extractToken(event, url) {
+        if (!url.startsWith(REDIRECT_URI)) return
+        event.preventDefault()
+        extractTokenFromUrl(url)
+      }
+
+      function extractTokenFromUrl(url) {
+        const hash = url.split('#')[1]
+        if (!hash) return
+
+        const params = new URLSearchParams(hash)
+        const idToken = params.get('id_token')
+
+        if (idToken) {
+          resolve(idToken)
+          authWindow.close()
+        }
+      }
+
+      authWindow.on('closed', () => {
+        reject(new Error('Auth window closed'))
+      })
+    })
+  })
+
   ipcMain.on('read-file', (_, filePath) => {
     if (!appWindow) return
     try {

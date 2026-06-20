@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Button } from '../ui/Button'
 import { Cat } from '../cat/Cat'
+import { ScreenHeader } from '../ui/ScreenHeader'
+import { FadeIn } from '../ui/FadeIn'
+import { SectionLabel } from '../ui/SectionLabel'
 import { useTodayStore } from '../../stores/today'
 
 interface Task {
@@ -46,19 +48,16 @@ export function EndOfDayScreen() {
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
-        <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Cat state="thinking" size={26} />
-          <span className="text-sm text-text-muted">{doneCount} of {tasks.length} done · tap to change</span>
-        </motion.div>
+        <ScreenHeader catState="thinking" message={`${doneCount} of ${tasks.length} done · tap to change`} />
 
-        <div className="grid grid-cols-[1fr_5.5rem_3rem] gap-x-3 text-[0.625rem] text-text-muted tracking-widest uppercase mb-2 px-1">
-          <span>Today</span>
-          <span>Goal</span>
-          <span className="text-right">Done</span>
+        <div className="grid grid-cols-[1fr_5.5rem_3rem] gap-x-3 mb-2 px-1">
+          <SectionLabel>Today</SectionLabel>
+          <SectionLabel>Goal</SectionLabel>
+          <SectionLabel className="text-right">Done</SectionLabel>
         </div>
 
         {tasks.map((row, i) => (
-          <motion.div key={row.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 + i * 0.03 }}
+          <FadeIn key={row.id} delay={0.05 + i * 0.03} y={0}
             className="grid grid-cols-[1fr_5.5rem_3rem] gap-x-3 items-center py-2.5 px-1">
             <span className={`text-sm ${row.done ? 'text-text-muted line-through' : 'text-text-primary'}`}>{row.task}</span>
             <span className="text-xs" style={{ color: row.done ? `${row.color}40` : row.color }}>{row.goal}</span>
@@ -69,41 +68,41 @@ export function EndOfDayScreen() {
                 {row.done && <span className="text-[0.375rem]" style={{ color: row.color }}>✓</span>}
               </div>
             </div>
-          </motion.div>
+          </FadeIn>
         ))}
 
-        <motion.div className="flex items-start gap-3 mt-8 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
+        <FadeIn delay={0.25} y={0} className="flex items-start gap-3 mt-8 mb-8">
           <Cat state="nudge" size={22} />
           <p className="text-sm text-text-muted">Stripe checkout moved to tomorrow 9:30 PM.</p>
-        </motion.div>
+        </FadeIn>
 
-        <div className="grid grid-cols-[3.5rem_1fr_5.5rem] gap-x-3 text-[0.625rem] text-text-muted tracking-widest uppercase mb-2 px-1">
-          <span>Time</span>
-          <span>Tomorrow</span>
-          <span>Goal</span>
+        <div className="grid grid-cols-[3.5rem_1fr_5.5rem] gap-x-3 mb-2 px-1">
+          <SectionLabel>Time</SectionLabel>
+          <SectionLabel>Tomorrow</SectionLabel>
+          <SectionLabel>Goal</SectionLabel>
         </div>
 
         {TOMORROW.map((row, i) => (
-          <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.03 }}
+          <FadeIn key={i} delay={0.3 + i * 0.03} y={0}
             className="grid grid-cols-[3.5rem_1fr_5.5rem] gap-x-3 items-center py-2.5 px-1">
             <span className="text-xs text-text-muted/50 tabular-nums">{row.time}</span>
             <span className="text-sm text-text-primary">{row.task}</span>
             <span className="text-xs" style={{ color: row.color }}>{row.goal}</span>
-          </motion.div>
+          </FadeIn>
         ))}
 
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-10 mb-6">
-          <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-2">Week summary — one line</p>
+        <FadeIn delay={0.4} className="mt-10 mb-6">
+          <SectionLabel className="mb-2">Week summary — one line</SectionLabel>
           <input
             defaultValue=""
             placeholder="How was this week? e.g. Shipped auth, 3 new leads, LinkedIn behind"
             className="w-full text-sm text-text-primary bg-transparent border-b border-border/40 pb-2 focus:outline-none focus:border-olive placeholder:text-text-muted/50"
           />
-        </motion.div>
+        </FadeIn>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-6">
+        <FadeIn delay={0.5} y={0} className="mt-6">
           <Button variant="primary" label="Close the day" onClick={handleCloseDay} />
-        </motion.div>
+        </FadeIn>
       </div>
     </PageTransition>
   )

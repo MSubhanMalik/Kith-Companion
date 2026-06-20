@@ -1,3 +1,5 @@
+export { axiosService } from './AxiosService'
+export { authService } from './AuthService'
 export { schedulerService } from './SchedulerService'
 export { exportService } from './ExportService'
 export { timeService } from './TimeService'

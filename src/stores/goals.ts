@@ -19,7 +19,7 @@ interface GoalsStore {
   goals: Goal[]
   milestones: Milestone[]
 
-  addGoal: (label: string, weeklyHours: number) => void
+  addGoal: (label: string, weeklyHours: number, isPrivate?: boolean, nickname?: string) => void
   updateGoal: (id: string, updates: Partial<Goal>) => void
   removeGoal: (id: string) => void
   reorderGoals: (orderedIds: string[]) => void
@@ -42,7 +42,7 @@ export const useGoalsStore = create<GoalsStore>()(
       goals: SEED_GOALS,
       milestones: SEED_MILESTONES,
 
-      addGoal: (label, weeklyHours) => {
+      addGoal: (label, weeklyHours, isPrivate = false, nickname = '') => {
         const { goals } = get()
         if (goals.length >= 10) return
         const colorId: CategoryColorId = assignColor(goals)
@@ -50,7 +50,7 @@ export const useGoalsStore = create<GoalsStore>()(
           goals: [...goals, {
             id: generateId(), label, targetDate: '', currentStatus: '', successMetric: '',
             colorId, rank: goals.length + 1, weeklyHours, createdAt: new Date().toISOString(),
-            isPrivate: false, nickname: '',
+            isPrivate, nickname,
           }],
         })
       },

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../ui/Button'
 import { Cat } from '../cat/Cat'
+import { FadeIn } from '../ui/FadeIn'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 
@@ -67,20 +68,10 @@ export function SchedulePreviewScreen({ onLockIn, onBack }: SchedulePreviewScree
               transition={{ duration: 0.3 }}
             >
               <Cat state="thinking" size={64} />
-              <motion.p
-                className="text-text-secondary mt-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                Building your week...
-              </motion.p>
-              <motion.div
-                className="flex gap-1 mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
+              <FadeIn delay={0.3} y={0} className="text-text-secondary mt-6">
+                <p>Building your week...</p>
+              </FadeIn>
+              <FadeIn delay={0.5} y={0} className="flex gap-1 mt-4">
                 {[0, 1, 2].map(i => (
                   <motion.div
                     key={i}
@@ -89,7 +80,7 @@ export function SchedulePreviewScreen({ onLockIn, onBack }: SchedulePreviewScree
                     transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
                   />
                 ))}
-              </motion.div>
+              </FadeIn>
             </motion.div>
           ) : (
             <motion.div
@@ -133,15 +124,10 @@ export function SchedulePreviewScreen({ onLockIn, onBack }: SchedulePreviewScree
                 ))}
               </div>
 
-              <motion.div
-                className="flex items-center justify-between"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-              >
-                <button onClick={onBack} className="text-sm text-text-muted hover:text-text-primary cursor-pointer">← adjust</button>
+              <FadeIn delay={0.8} y={0} className="flex items-center justify-between">
+                <Button variant="ghost" size="sm" label="← adjust" onClick={onBack} />
                 <Button variant="primary" onClick={onLockIn} label="Lock it in" />
-              </motion.div>
+              </FadeIn>
             </motion.div>
           )}
         </AnimatePresence>

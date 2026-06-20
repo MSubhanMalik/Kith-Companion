@@ -1,9 +1,14 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
-import { Cat } from '../cat/Cat'
+import { ScreenHeader } from '../ui/ScreenHeader'
+import { FadeIn } from '../ui/FadeIn'
+import { SectionLabel } from '../ui/SectionLabel'
+import { Button } from '../ui/Button'
 import { useGoalsStore } from '../../stores/goals'
+import { useScheduleStore } from '../../stores/schedule'
 import { getGoalColor } from '../../lib/colors'
+import { DAY_LABELS } from '../../types'
 
 interface GoalsListScreenProps {
   onGoalClick: (id: string) => void
@@ -47,16 +52,13 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
-        <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Cat state="idle" size={26} />
-          <span className="text-sm text-text-muted">{goals.length} goals · drag to reprioritize</span>
-        </motion.div>
+        <ScreenHeader catState="idle" message={`${goals.length} goals · drag to reprioritize`} />
 
-        <div className="grid grid-cols-[1fr_4rem_4rem_5rem] gap-x-3 text-[0.625rem] text-text-muted tracking-widest uppercase mb-2 px-1">
-          <span>Goal</span>
-          <span>Tasks</span>
-          <span>Hours</span>
-          <span className="text-right">Status</span>
+        <div className="grid grid-cols-[1fr_4rem_4rem_5rem] gap-x-3 mb-2 px-1">
+          <SectionLabel>Goal</SectionLabel>
+          <SectionLabel>Tasks</SectionLabel>
+          <SectionLabel>Hours</SectionLabel>
+          <SectionLabel className="text-right">Status</SectionLabel>
         </div>
 
         <Reorder.Group axis="y" values={publicGoals} onReorder={handleReorder}>
@@ -106,7 +108,7 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
         </div>
 
         {privateGoals.length > 0 && (
-          <motion.div className="mt-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+          <FadeIn delay={0.2} y={0} className="mt-10">
             <button
               onClick={() => setPrivateExpanded(!privateExpanded)}
               className="flex items-center gap-2 text-sm text-text-muted cursor-pointer hover:text-text-secondary transition-colors"
@@ -129,32 +131,66 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
                     {privateGoals.map((goal, i) => {
                       const color = getGoalColor(goal.colorId)
                       return (
-                        <motion.div
+                        <FadeIn
                           key={goal.id}
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          className="grid grid-cols-[1fr_4rem_4rem_5rem] gap-x-3 items-center py-3 px-1 cursor-pointer rounded-lg hover:bg-surface-hover transition-colors"
-                          onClick={() => onGoalClick(goal.id)}
+                          delay={i * 0.05}
+                          y={4}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color.bg }} />
-                            <span className="text-sm font-medium text-text-primary truncate">{goal.nickname}</span>
-                            <span className="text-[0.5rem] text-olive">🔒</span>
+                          <div
+                            className="grid grid-cols-[1fr_4rem_4rem_5rem] gap-x-3 items-center py-3 px-1 cursor-pointer rounded-lg hover:bg-surface-hover transition-colors"
+                            onClick={() => onGoalClick(goal.id)}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color.bg }} />
+                              <span className="text-sm font-medium text-text-primary truncate">{goal.nickname}</span>
+                              <span className="text-[0.5rem] text-olive">🔒</span>
+                            </div>
+                            <span className="text-xs text-text-muted/50">0/0</span>
+                            <span className="text-xs text-text-muted/50">0/{goal.weeklyHours}h</span>
+                            <span className="text-xs text-right text-text-muted">{goal.currentStatus || 'new'}</span>
                           </div>
-                          <span className="text-xs text-text-muted/50">0/0</span>
-                          <span className="text-xs text-text-muted/50">0/{goal.weeklyHours}h</span>
-                          <span className="text-xs text-right text-text-muted">{goal.currentStatus || 'new'}</span>
-                        </motion.div>
+                        </FadeIn>
                       )
                     })}
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </FadeIn>
         )}
+
+        <LifeBlocksSection />
       </div>
     </PageTransition>
   )
+}
+
+function LifeBlocksSection() {
+  const lifeBlocks = useScheduleStore(s => s.lifeBlocks)
+
+  return (
+    <FadeIn delay={0.25} y={0} className="mt-12">
+      <SectionLabel className="mb-4">Non-negotiables</SectionLabel>
+      {lifeBlocks.map((b, i) => {
+        const dayLabels = b.days.map(d => DAY_LABELS[d as keyof typeof DAY_LABELS] || d)
+        const dayRange = dayLabels.length === 7 ? 'Every day' : dayLabels.join(', ')
+        const start = formatHour(b.time.start)
+        const end = formatHour(b.time.end)
+        return (
+          <div key={i} className="flex items-center justify-between py-2.5">
+            <span className="text-sm text-text-primary">{b.label}</span>
+            <span className="text-xs text-text-muted">{start}–{end} · {dayRange}</span>
+          </div>
+        )
+      })}
+      <Button variant="ghost" size="sm" label="+ add block" />
+    </FadeIn>
+  )
+}
+
+function formatHour(time: string): string {
+  const [h, m] = time.split(':').map(Number)
+  const suffix = h >= 12 ? 'PM' : 'AM'
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return m === 0 ? `${hour12} ${suffix}` : `${hour12}:${String(m).padStart(2, '0')} ${suffix}`
 }
