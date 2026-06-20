@@ -84,7 +84,16 @@ export function EndOfDayScreen() {
           </motion.div>
         ))}
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="mt-8">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-10 mb-6">
+          <p className="text-[0.625rem] text-text-muted tracking-widest uppercase mb-2">Week summary — one line</p>
+          <input
+            defaultValue=""
+            placeholder="How was this week? e.g. Shipped auth, 3 new leads, LinkedIn behind"
+            className="w-full text-sm text-text-primary bg-transparent border-b border-border/40 pb-2 focus:outline-none focus:border-olive placeholder:text-text-muted/50"
+          />
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-6">
           <Button variant="primary" label="Close the day" />
         </motion.div>
       </div>

@@ -55,13 +55,29 @@ export function HomeScreen() {
     setSelectedTask(null)
   }
 
+  if (tasks.length === 0) {
+    return (
+      <PageTransition>
+        <div className="pt-6 pb-12 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 10rem)' }}>
+          <Cat state="idle" size={48} />
+          <p className="text-text-secondary mt-6 text-center">No tasks today.<br />Add a goal to get started.</p>
+        </div>
+      </PageTransition>
+    )
+  }
+
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
         <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <Cat state="idle" size={26} />
           <span className="text-sm text-text-muted">Wednesday · {doneCount} of {tasks.length} done</span>
-          <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive ml-auto cursor-pointer">close day</a>
+          {doneCount >= tasks.length - 1 && (
+            <a href="#app/review" className="text-xs text-olive font-medium hover:text-olive-hover ml-auto cursor-pointer">Close the day →</a>
+          )}
+          {doneCount < tasks.length - 1 && (
+            <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive ml-auto cursor-pointer">review</a>
+          )}
         </motion.div>
 
         <div className="grid grid-cols-[4rem_1fr_5.5rem_4rem] gap-x-3 text-[0.625rem] text-text-muted tracking-widest uppercase mb-2 px-1">
@@ -100,13 +116,15 @@ export function HomeScreen() {
                   </span>
 
                   <div className="flex items-center justify-end gap-2 pt-0.5">
-                    <div
+                    <motion.div
                       className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer shrink-0"
                       style={isDone ? { backgroundColor: `${row.color || '#9C8F80'}18` } : { border: '1.5px solid #D4CCC0' }}
                       onClick={() => toggleDone(row.id)}
+                      whileTap={{ scale: 1.4 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                     >
                       {isDone && <span className="text-[0.375rem]" style={{ color: row.color || '#9C8F80' }}>✓</span>}
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
               </Reorder.Item>

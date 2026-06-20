@@ -59,7 +59,9 @@ export function WeekScreen() {
       <div className="pt-6 pb-12">
         <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <Cat state="idle" size={26} />
-          <span className="text-sm text-text-muted">Week of Jun 16</span>
+          <button className="text-text-muted hover:text-text-primary cursor-pointer text-sm">←</button>
+          <span className="text-sm text-text-muted">Jun 16 – 22</span>
+          <button className="text-text-muted hover:text-text-primary cursor-pointer text-sm">→</button>
           <div className="flex items-center gap-3 ml-auto">
             <button onClick={exportWeeklySchedule} className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer transition-colors">Export ↓</button>
             {(['week', 'month'] as const).map(v => (
