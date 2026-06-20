@@ -6,8 +6,8 @@ const isDev = process.env.NODE_ENV !== 'production'
 
 const PET_W = 140
 const PET_H = 160
-const MSG_W = 280
-const MSG_H = 220
+const MSG_W = 320
+const MSG_H = 300
 const APP_W = 720
 const APP_H = 580
 const PADDING = 16

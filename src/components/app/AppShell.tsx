@@ -1,5 +1,9 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { NavBar } from './NavBar'
+import { ChatPanel } from '../chat/ChatPanel'
+import { Cat } from '../cat/Cat'
+import { motion } from 'framer-motion'
 
 interface AppShellProps {
   children: ReactNode
@@ -8,13 +12,27 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, currentRoute, onNavigate }: AppShellProps) {
+  const [chatOpen, setChatOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-page flex flex-col">
       <div className="h-16 shrink-0" />
       <NavBar currentRoute={currentRoute} onNavigate={onNavigate} />
-      <main className="flex-1 w-full max-w-2xl mx-auto px-8 py-6">
+      <main className={`flex-1 w-full mx-auto px-8 py-6 transition-all duration-300 ${chatOpen ? 'max-w-3xl mr-[22rem]' : 'max-w-4xl'}`}>
         {children}
       </main>
+
+      <motion.button
+        className="fixed bottom-5 right-5 z-40 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer"
+        style={{ backgroundColor: chatOpen ? '#8B7D3C15' : 'transparent' }}
+        onClick={() => setChatOpen(!chatOpen)}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Cat state={chatOpen ? 'listening' : 'idle'} size={28} />
+      </motion.button>
+
+      <ChatPanel visible={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   )
 }

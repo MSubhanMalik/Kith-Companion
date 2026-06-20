@@ -49,18 +49,18 @@ export function SetupScreen({ onNext, onBack }: SetupScreenProps) {
               >
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center gap-1 pt-2">
-                    <span className="text-lg font-bold text-text-muted/30">{i + 1}</span>
+                    <span className="text-lg font-bold text-text-muted">{i + 1}</span>
                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: goal.color }} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <input
                         defaultValue={goal.label}
-                        className="flex-1 text-text-primary font-medium bg-transparent border-b border-border/50 pb-2 focus:outline-none focus:border-olive placeholder:text-text-muted/40"
+                        className="flex-1 text-text-primary font-medium bg-transparent border-b border-border/50 pb-2 focus:outline-none focus:border-olive placeholder:text-text-muted"
                       />
                       <button
                         className={`text-sm cursor-pointer transition-colors shrink-0 ${
-                          goal.private ? 'text-olive' : 'text-text-muted/25 hover:text-text-muted/50'
+                          goal.private ? 'text-olive' : 'text-text-muted/50 hover:text-text-muted'
                         }`}
                         title={goal.private ? 'Private — using nickname' : 'Make private'}
                       >
@@ -73,7 +73,7 @@ export function SetupScreen({ onNext, onBack }: SetupScreenProps) {
                       <input
                         type="date"
                         defaultValue={goal.date}
-                        className="text-xs text-text-secondary bg-transparent border-b border-border/30 pb-1 focus:outline-none focus:border-olive"
+                        className="text-xs text-text-secondary bg-transparent border-b border-border/40 pb-1 focus:outline-none focus:border-olive"
                       />
 
                       {goal.private && (
@@ -118,7 +118,7 @@ export function SetupScreen({ onNext, onBack }: SetupScreenProps) {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 + i * 0.05 }}
-                className="flex items-center justify-between border-b border-border/30 pb-3"
+                className="flex items-center justify-between border-b border-border/40 pb-3"
               >
                 <div>
                   <span className="text-text-primary font-medium">{block.label}</span>

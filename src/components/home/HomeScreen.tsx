@@ -1,164 +1,163 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, Reorder } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Cat } from '../cat/Cat'
-import { CatNudge } from '../cat/CatNudge'
-import { CompletionPrompt } from '../cat/CompletionPrompt'
+import { TaskModal } from '../goals/TaskModal'
 
-type HomeState = 'active' | 'between' | 'done' | 'rest'
-
-const MOCK_STATE: HomeState = 'active'
-
-const CURRENT = {
-  label: 'Build Stripe checkout flow',
-  goal: 'Startup',
-  time: '9:30–11:30 PM',
-  color: '#7A9A6D',
-  remaining: 47,
-  total: 120,
+interface Task {
+  id: string
+  time: string
+  task: string
+  goal: string
+  output: string
+  color: string
+  status: 'done' | 'active' | 'upcoming'
 }
 
-const NEXT = {
-  label: 'Write LinkedIn post: weekly recap',
-  time: '11:30 PM',
-  color: '#B08455',
-}
+const INITIAL_TASKS: Task[] = [
+  { id: '1', time: '5:30 PM', task: 'Send 5 cold DMs to agency founders', goal: 'Freelancing', output: '5 personalized DMs sent', color: '#C4745C', status: 'done' },
+  { id: '2', time: '7:00 PM', task: 'Follow up on API client re: SOW', goal: 'Freelancing', output: 'Follow-up email with next steps', color: '#C4745C', status: 'done' },
+  { id: '3', time: '8:00 PM', task: 'Gym', goal: '', output: '', color: '', status: 'done' },
+  { id: '4', time: '9:30 PM', task: 'Build Stripe checkout flow', goal: 'Startup', output: 'Test payment works on staging', color: '#7A9A6D', status: 'active' },
+  { id: '5', time: '11:30 PM', task: 'Write LinkedIn post: weekly recap', goal: 'LinkedIn', output: 'Post drafted and scheduled', color: '#B08455', status: 'upcoming' },
+]
 
-const DONE = [
-  { label: 'Send 5 cold DMs', color: '#C4745C' },
-  { label: 'Follow up API client', color: '#C4745C' },
+const GOALS_SUMMARY = [
+  { label: 'Freelancing', color: '#C4745C', done: 4, total: 7 },
+  { label: 'Startup', color: '#7A9A6D', done: 2, total: 5 },
+  { label: 'LinkedIn', color: '#B08455', done: 1, total: 4 },
 ]
 
 export function HomeScreen() {
-  const [nudgeVisible, setNudgeVisible] = useState(false)
-  const [completionVisible, setCompletionVisible] = useState(false)
-  const [homeState] = useState<HomeState>(MOCK_STATE)
-  const progress = (CURRENT.total - CURRENT.remaining) / CURRENT.total
+  const [tasks, setTasks] = useState(INITIAL_TASKS)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [newTask, setNewTask] = useState('')
 
-  useEffect(() => {
-    if (homeState === 'active') {
-      const timer = setTimeout(() => setNudgeVisible(true), 4000)
-      return () => clearTimeout(timer)
-    }
-  }, [homeState])
+  const doneCount = tasks.filter(t => t.status === 'done').length
 
-  if (homeState === 'rest') {
-    return (
-      <PageTransition>
-        <div className="pt-6 pb-12 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 8rem)' }}>
-          <Cat state="sleeping" size={48} />
-          <p className="text-text-muted mt-6">No tasks today. Rest.</p>
-        </div>
-      </PageTransition>
-    )
+  function toggleDone(id: string) {
+    setTasks(prev => prev.map(t => {
+      if (t.id !== id) return t
+      if (t.status === 'done') return { ...t, status: 'upcoming' as const }
+      return { ...t, status: 'done' as const }
+    }))
   }
 
-  if (homeState === 'done') {
-    return (
-      <PageTransition>
-        <div className="pt-6 pb-12">
-          <motion.div className="flex items-center gap-3 mb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Cat state="happy" size={26} />
-            <span className="text-sm text-text-muted">All done. Nice work today.</span>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            {DONE.map((t, i) => (
-              <div key={i} className="flex items-center gap-3 mt-2">
-                <span className="text-xs text-text-muted/30">done</span>
-                <span className="text-sm text-text-muted/40 line-through">{t.label}</span>
-              </div>
-            ))}
-          </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-12">
-            <a href="#app/review" className="text-sm text-olive hover:text-olive-hover cursor-pointer">Close the day →</a>
-          </motion.div>
-        </div>
-      </PageTransition>
-    )
+  function addTask() {
+    if (!newTask.trim()) return
+    const id = Date.now().toString()
+    setTasks(prev => [...prev, { id, time: '—', task: newTask.trim(), goal: '', output: '', color: '#9C8F80', status: 'upcoming' as const }])
+    setNewTask('')
   }
 
-  if (homeState === 'between') {
-    return (
-      <PageTransition>
-        <div className="pt-6 pb-12">
-          <motion.div className="flex items-center gap-3 mb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Cat state="idle" size={26} />
-            <span className="text-sm text-text-muted">Break time. Next task at 9:30 PM.</span>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <p className="text-xs text-text-muted/40 mb-2">next</p>
-            <p className="text-lg font-semibold text-text-primary" style={{ letterSpacing: '-0.01em' }}>{CURRENT.label}</p>
-            <p className="text-xs mt-1" style={{ color: CURRENT.color }}>{CURRENT.goal} · {CURRENT.time}</p>
-          </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-10">
-            {DONE.map((t, i) => (
-              <div key={i} className="flex items-center gap-3 mt-2">
-                <span className="text-xs text-text-muted/30">done</span>
-                <span className="text-sm text-text-muted/40 line-through">{t.label}</span>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </PageTransition>
-    )
+  function removeTask(id: string) {
+    setTasks(prev => prev.filter(t => t.id !== id))
+    setSelectedTask(null)
   }
 
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
-        <motion.div className="flex items-center gap-3 mb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Cat state={nudgeVisible ? 'alert' : 'idle'} size={26} />
-          <span className="text-sm text-text-muted">2 tasks left for your goals today</span>
+        <motion.div className="flex items-center gap-3 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <Cat state="idle" size={26} />
+          <span className="text-sm text-text-muted">Wednesday · {doneCount} of {tasks.length} done</span>
+          <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive ml-auto cursor-pointer">close day</a>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <p className="text-xs" style={{ color: CURRENT.color }}>{CURRENT.goal}</p>
-          <h1 className="text-[2rem] font-bold text-text-primary mt-2 leading-tight" style={{ letterSpacing: '-0.03em' }}>
-            {CURRENT.label}
-          </h1>
-          <div className="flex items-center gap-4 mt-5">
-            <span className="text-sm text-text-muted">{CURRENT.remaining} min left</span>
-            <div className="flex-1 h-px bg-border/30">
-              <motion.div className="h-full" style={{ backgroundColor: CURRENT.color }} initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} transition={{ duration: 1, ease: 'easeOut' }} />
-            </div>
-          </div>
-        </motion.div>
+        <div className="grid grid-cols-[4rem_1fr_5.5rem_4rem] gap-x-3 text-[0.625rem] text-text-muted tracking-widest uppercase mb-2 px-1">
+          <span>Time</span>
+          <span>Task</span>
+          <span>Goal</span>
+          <span className="text-right">Status</span>
+        </div>
 
-        <motion.div className="mt-20" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-text-muted/40">next</span>
-            <span className="text-sm text-text-muted">{NEXT.label}</span>
-            <span className="text-xs text-text-muted/30 ml-auto">{NEXT.time}</span>
-          </div>
-        </motion.div>
+        <Reorder.Group axis="y" values={tasks} onReorder={setTasks}>
+          {tasks.map((row) => {
+            const isActive = row.status === 'active'
+            const isDone = row.status === 'done'
 
-        <motion.div className="mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
-          {DONE.map((t, i) => (
-            <div key={i} className="flex items-center gap-3 mt-2">
-              <span className="text-xs text-text-muted/30">done</span>
-              <span className="text-sm text-text-muted/40 line-through">{t.label}</span>
-            </div>
-          ))}
+            return (
+              <Reorder.Item key={row.id} value={row} className="list-none">
+                <div className={`grid grid-cols-[4rem_1fr_5.5rem_4rem] gap-x-3 items-start py-2.5 px-1 rounded-lg cursor-grab active:cursor-grabbing ${isActive ? 'bg-[#00000003]' : ''}`}>
+                  <span className={`text-xs tabular-nums pt-0.5 ${isDone ? 'text-text-muted/50' : isActive ? 'text-text-primary' : 'text-text-muted/50'}`}>
+                    {row.time}
+                  </span>
+
+                  <div>
+                    <p
+                      className={`text-sm leading-snug cursor-pointer ${isDone ? 'text-text-muted line-through' : isActive ? 'text-text-primary font-medium' : 'text-text-secondary'} hover:text-olive transition-colors`}
+                      onClick={() => setSelectedTask(row)}
+                    >
+                      {row.task}
+                    </p>
+                    {isActive && row.output && (
+                      <p className="text-[0.6875rem] text-text-muted/50 mt-0.5">→ {row.output}</p>
+                    )}
+                  </div>
+
+                  <span className="text-xs pt-0.5" style={{ color: isDone ? `${row.color}40` : row.color || 'transparent' }}>
+                    {row.goal}
+                  </span>
+
+                  <div className="flex items-center justify-end gap-2 pt-0.5">
+                    <div
+                      className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer shrink-0"
+                      style={isDone ? { backgroundColor: `${row.color || '#9C8F80'}18` } : { border: '1.5px solid #D4CCC0' }}
+                      onClick={() => toggleDone(row.id)}
+                    >
+                      {isDone && <span className="text-[0.375rem]" style={{ color: row.color || '#9C8F80' }}>✓</span>}
+                    </div>
+                  </div>
+                </div>
+              </Reorder.Item>
+            )
+          })}
+        </Reorder.Group>
+
+        <div className="flex items-center gap-3 mt-4 px-1">
+          <span className="text-xs text-text-muted/50 w-[4rem]">+</span>
+          <input
+            value={newTask}
+            onChange={e => setNewTask(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addTask()}
+            placeholder="add a task..."
+            className="flex-1 text-sm text-text-primary bg-transparent border-b border-border/40 pb-1.5 focus:outline-none focus:border-olive placeholder:text-text-muted/50"
+          />
+        </div>
+
+        <motion.div
+          className="mt-10 grid grid-cols-3 gap-4"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          {GOALS_SUMMARY.map((g, i) => {
+            const pct = g.total > 0 ? (g.done / g.total) * 100 : 0
+            return (
+              <div key={i}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs" style={{ color: g.color }}>{g.label}</span>
+                  <span className="text-[0.625rem] text-text-muted">{g.done}/{g.total}</span>
+                </div>
+                <div className="h-px bg-border/40">
+                  <motion.div className="h-full" style={{ backgroundColor: g.color }} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6, delay: 0.25 + i * 0.06 }} />
+                </div>
+              </div>
+            )
+          })}
         </motion.div>
       </div>
 
-      <CatNudge
-        visible={nudgeVisible}
-        catState="alert"
-        message="Freelancing is your #1 goal but you haven't touched it since 7 PM. Want to swap tonight's remaining time?"
-        action="Swap it"
-        onAction={() => setNudgeVisible(false)}
-        onDismiss={() => { setNudgeVisible(false); setTimeout(() => setCompletionVisible(true), 1500) }}
-      />
-
-      <CompletionPrompt
-        visible={completionVisible}
-        task="Build Stripe checkout flow"
-        goal="Startup"
-        goalColor="#7A9A6D"
-        onYes={() => setCompletionVisible(false)}
-        onNo={() => setCompletionVisible(false)}
-      />
+      {selectedTask && (
+        <TaskModal
+          visible={!!selectedTask}
+          task={{ text: selectedTask.task, day: 'Wed', time: selectedTask.time, done: selectedTask.status === 'done', description: '', output: selectedTask.output }}
+          goalColor={selectedTask.color || '#9C8F80'}
+          onClose={() => setSelectedTask(null)}
+          onToggleDone={() => { toggleDone(selectedTask.id); setSelectedTask(null) }}
+          onRemove={() => removeTask(selectedTask.id)}
+        />
+      )}
     </PageTransition>
   )
 }
