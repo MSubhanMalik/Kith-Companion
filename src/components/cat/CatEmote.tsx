@@ -26,29 +26,10 @@ export function CatEmote({ visible, emoji, text }: CatEmoteProps) {
           exit={{ opacity: 0, y: -12, scale: 0.5, transition: { duration: 0.3 } }}
           style={{ transform: 'translateX(-50%)' }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              padding: text ? '0.25rem 0.5rem' : '0.25rem',
-              borderRadius: '2rem',
-              backgroundColor: 'rgba(255,255,255,0.92)',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span style={{ fontSize: '1rem', lineHeight: 1 }}>{emoji}</span>
+          <div className={`flex items-center gap-1 ${text ? 'px-2 py-1' : 'p-1'} rounded-full bg-white/92 backdrop-blur-sm shadow-md whitespace-nowrap`}>
+            <span className="text-base leading-none">{emoji}</span>
             {text && (
-              <span
-                style={{
-                  fontSize: '0.5625rem',
-                  fontWeight: 600,
-                  color: '#6B5E4F',
-                  fontFamily: '"DM Sans", sans-serif',
-                }}
-              >
+              <span className="text-[0.5625rem] font-semibold text-text-secondary font-sans">
                 {text}
               </span>
             )}

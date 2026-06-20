@@ -43,86 +43,38 @@ export function CatBubble({
           className="absolute bottom-full right-0 mb-3"
           style={{ transformOrigin: 'bottom right', WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <div
-            style={{
-              width: '16rem',
-              borderRadius: '1rem',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E0D8CC',
-              padding: '0.875rem 1rem',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
-              fontFamily: '"DM Sans", sans-serif',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem' }}>
-              <span style={{ color: config.color, fontSize: '0.75rem' }}>
+          <div className="w-64 rounded-2xl bg-white border border-border px-4 py-3.5 shadow-lg font-sans">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-xs" style={{ color: config.color }}>
                 {config.icon}
               </span>
-              <span style={{ color: config.color, fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.02em' }}>
+              <span className="text-[0.6875rem] font-semibold tracking-wide" style={{ color: config.color }}>
                 {label}
               </span>
             </div>
 
-            <p style={{
-              fontSize: '0.8125rem',
-              lineHeight: 1.45,
-              color: '#2C2417',
-              marginBottom: '0.75rem',
-              fontWeight: 400,
-            }}>
+            <p className="text-[0.8125rem] leading-snug text-text-primary mb-3">
               {message}
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="flex items-center gap-2">
               <button
                 onClick={onPrimary}
-                style={{
-                  backgroundColor: config.color,
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  padding: '0.375rem 0.75rem',
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  fontFamily: '"DM Sans", sans-serif',
-                  cursor: 'pointer',
-                }}
+                className="rounded-lg px-3 py-1.5 text-[0.6875rem] font-semibold text-white cursor-pointer"
+                style={{ backgroundColor: config.color }}
               >
                 {primaryAction}
               </button>
               <button
                 onClick={onSecondary}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#6B5E4F',
-                  border: '1px solid #E0D8CC',
-                  borderRadius: '0.5rem',
-                  padding: '0.375rem 0.75rem',
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  fontFamily: '"DM Sans", sans-serif',
-                  cursor: 'pointer',
-                }}
+                className="rounded-lg px-3 py-1.5 text-[0.6875rem] font-semibold text-text-secondary border border-border cursor-pointer"
               >
                 {secondaryAction}
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-0.375rem',
-              right: '1.5rem',
-              width: '0.75rem',
-              height: '0.75rem',
-              backgroundColor: '#FFFFFF',
-              borderRight: '1px solid #E0D8CC',
-              borderBottom: '1px solid #E0D8CC',
-              transform: 'rotate(45deg)',
-              boxShadow: '2px 2px 4px rgba(0,0,0,0.05)',
-            }}
-          />
+          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-r border-b border-border rotate-45 shadow-sm" />
         </motion.div>
       )}
     </AnimatePresence>

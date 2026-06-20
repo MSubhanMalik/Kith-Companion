@@ -80,7 +80,7 @@ export function ChatPanel({ visible, onClose }: ChatPanelProps) {
                     {msg.from === 'kith' ? (
                       <p className="text-sm text-text-primary leading-relaxed">{msg.text}</p>
                     ) : (
-                      <p className="text-sm text-text-secondary leading-relaxed rounded-xl rounded-br-sm px-3 py-2" style={{ backgroundColor: '#E8E2D8' }}>
+                      <p className="text-sm text-text-secondary leading-relaxed rounded-xl rounded-br-sm px-3 py-2" style={{ backgroundColor: 'var(--color-surface-hover)' }}>
                         {msg.text}
                       </p>
                     )}

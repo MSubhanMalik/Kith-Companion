@@ -118,7 +118,7 @@ export function HomeScreen() {
                   <div className="flex items-center justify-end gap-2 pt-0.5">
                     <motion.div
                       className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer shrink-0"
-                      style={isDone ? { backgroundColor: `${row.color || '#9C8F80'}18` } : { border: '1.5px solid #D4CCC0' }}
+                      style={isDone ? { backgroundColor: `${row.color || '#9C8F80'}18` } : { border: '1.5px solid var(--color-border)' }}
                       onClick={() => toggleDone(row.id)}
                       whileTap={{ scale: 1.4 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 15 }}

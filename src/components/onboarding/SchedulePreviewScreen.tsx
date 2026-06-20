@@ -120,9 +120,9 @@ export function SchedulePreviewScreen({ onLockIn, onBack }: SchedulePreviewScree
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: di * 0.06 + bi * 0.04 }}
                           className="rounded-lg px-2 py-2"
-                          style={{ backgroundColor: block.color ? `${block.color}12` : '#E8E2D8' }}
+                          style={{ backgroundColor: block.color ? `${block.color}12` : 'var(--color-surface-hover)' }}
                         >
-                          <p className="text-[0.5625rem] font-medium truncate" style={{ color: block.color || '#6B5E4F' }}>
+                          <p className="text-[0.5625rem] font-medium truncate" style={{ color: block.color || 'var(--color-text-secondary)' }}>
                             {block.label}
                           </p>
                           <p className="text-[0.5rem] text-text-muted">{block.time}</p>

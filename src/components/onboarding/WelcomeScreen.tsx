@@ -10,8 +10,7 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
   return (
     <div className="min-h-screen bg-page flex items-center justify-center p-8">
       <motion.div
-        className="flex flex-col items-center text-center"
-        style={{ maxWidth: '26rem' }}
+        className="flex flex-col items-center text-center max-w-[26rem]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}

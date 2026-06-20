@@ -171,7 +171,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                             <Reorder.Item key={day.id} value={day} className="list-none">
                               <div
                                 className={`rounded-xl px-3.5 py-3 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-transform ${day.done ? 'opacity-30' : ''} ${selectedTask?.id === day.id ? 'ring-1 ring-olive/30' : ''}`}
-                                style={{ backgroundColor: day.done ? '#E8E2D8' : `${GOAL.color}06` }}
+                                style={{ backgroundColor: day.done ? 'var(--color-surface-hover)' : `${GOAL.color}06` }}
                                 onClick={() => setSelectedTask({ id: day.id, text: day.topic, day: day.day, time: '2:00 PM', done: day.done, description: day.detail, output: day.output })}
                               >
                                 <div className="flex items-center justify-between mb-1">
@@ -180,7 +180,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                                 </div>
                                 <p className={`text-[0.8125rem] font-medium leading-snug ${day.done ? 'line-through text-text-muted' : 'text-text-primary'}`}>{day.topic}</p>
                                 <p className="text-[0.625rem] text-text-muted mt-0.5">{day.detail}</p>
-                                <p className="text-[0.625rem] mt-1.5" style={{ color: day.done ? '#9C8F80' : GOAL.color }}>→ {day.output}</p>
+                                <p className="text-[0.625rem] mt-1.5" style={{ color: day.done ? 'var(--color-text-muted)' : GOAL.color }}>→ {day.output}</p>
                               </div>
                             </Reorder.Item>
                           ))}
@@ -225,10 +225,10 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                       <span className={`text-xs pt-0.5 ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.day}</span>
                       <span className={`text-sm ${task.done ? 'text-text-muted/50 line-through' : 'text-text-primary font-medium'}`}>{task.text}</span>
                       <span className={`text-xs truncate ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.description || '—'}</span>
-                      <span className="text-xs truncate" style={{ color: task.done ? '#9C8F80' : GOAL.color }}>{task.output || '—'}</span>
+                      <span className="text-xs truncate" style={{ color: task.done ? 'var(--color-text-muted)' : GOAL.color }}>{task.output || '—'}</span>
                       <div className="flex justify-center pt-0.5">
                         <motion.div className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer"
-                          style={task.done ? { backgroundColor: `${GOAL.color}18` } : { border: '1.5px solid #D4CCC0' }}
+                          style={task.done ? { backgroundColor: `${GOAL.color}18` } : { border: '1.5px solid var(--color-border)' }}
                           onClick={e => { e.stopPropagation(); toggleDone(task.id) }}
                           whileTap={{ scale: 1.4 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
@@ -287,7 +287,7 @@ function TaskDetailPanel({ task, goalColor, onUpdate, onClose, onRemove, onToggl
         <button onClick={onClose} className="text-[0.625rem] text-text-muted hover:text-text-secondary cursor-pointer">← notes</button>
         <div className="flex items-center gap-2">
           <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center cursor-pointer"
-            style={task.done ? { backgroundColor: `${goalColor}18` } : { border: '1.5px solid #D4CCC0' }}
+            style={task.done ? { backgroundColor: `${goalColor}18` } : { border: '1.5px solid var(--color-border)' }}
             onClick={onToggleDone}>
             {task.done && <span className="text-[0.3125rem]" style={{ color: goalColor }}>✓</span>}
           </div>

@@ -12,7 +12,7 @@ const NAV = [
 
 export function NavBar({ currentRoute, onNavigate }: NavBarProps) {
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 bg-page/80 backdrop-blur-sm flex items-end justify-center gap-1 z-50 pb-2">
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-page/80 backdrop-blur-sm flex items-end justify-center gap-1 z-50 pb-2 pt-24">
       {NAV.map(({ route, label }) => (
         <button
           key={route}

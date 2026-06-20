@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain } = require('electron')
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -15,6 +15,7 @@ const PADDING = 16
 let petWindow = null
 let msgWindow = null
 let appWindow = null
+let tray = null
 
 function createWindows() {
   const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize
@@ -92,6 +93,74 @@ function createWindows() {
   appWindow.on('close', (e) => {
     e.preventDefault()
     appWindow.hide()
+  })
+
+  tray = new Tray(nativeImage.createEmpty())
+  tray.setTitle('K')
+  tray.setToolTip('Kith')
+
+  tray.on('click', () => {
+    if (appWindow) {
+      if (appWindow.isVisible()) {
+        appWindow.hide()
+      } else {
+        appWindow.show()
+        appWindow.focus()
+      }
+    }
+  })
+
+  tray.on('right-click', () => {
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Open Kith',
+        click: () => {
+          if (appWindow) {
+            appWindow.show()
+            appWindow.focus()
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Today',
+        click: () => {
+          if (appWindow) {
+            appWindow.show()
+            appWindow.focus()
+            appWindow.webContents.executeJavaScript("window.location.hash = '#app/home'")
+          }
+        },
+      },
+      {
+        label: 'Week',
+        click: () => {
+          if (appWindow) {
+            appWindow.show()
+            appWindow.focus()
+            appWindow.webContents.executeJavaScript("window.location.hash = '#app/week'")
+          }
+        },
+      },
+      {
+        label: 'Goals',
+        click: () => {
+          if (appWindow) {
+            appWindow.show()
+            appWindow.focus()
+            appWindow.webContents.executeJavaScript("window.location.hash = '#app/goals'")
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit Kith',
+        click: () => {
+          app.exit(0)
+        },
+      },
+    ])
+    tray.popUpContextMenu(contextMenu)
   })
 
   ipcMain.on('show-message', (_, data) => {

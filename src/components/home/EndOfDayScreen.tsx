@@ -56,7 +56,7 @@ export function EndOfDayScreen() {
             <span className="text-xs" style={{ color: row.done ? `${row.color}40` : row.color }}>{row.goal}</span>
             <div className="flex justify-end">
               <div className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer"
-                style={row.done ? { backgroundColor: `${row.color}18` } : { border: '1.5px solid #D4CCC0' }}
+                style={row.done ? { backgroundColor: `${row.color}18` } : { border: '1.5px solid var(--color-border)' }}
                 onClick={() => toggleDone(row.id)}>
                 {row.done && <span className="text-[0.375rem]" style={{ color: row.color }}>✓</span>}
               </div>

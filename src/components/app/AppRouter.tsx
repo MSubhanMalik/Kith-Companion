@@ -25,7 +25,7 @@ export function AppRouter() {
   useEffect(() => {
     document.body.style.overflow = 'auto'
     document.body.style.userSelect = 'auto'
-    document.body.style.background = '#F5F0E8'
+    document.body.style.background = 'var(--color-page)'
 
     const onHash = () => setRoute(getRoute())
     window.addEventListener('hashchange', onHash)

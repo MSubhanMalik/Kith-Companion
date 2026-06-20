@@ -73,7 +73,7 @@ export function ChatScreen({ onBack }: { onBack: () => void }) {
                   </div>
                 )}
                 {msg.from === 'user' && (
-                  <p className="text-sm text-text-secondary leading-relaxed rounded-2xl rounded-br-sm px-4 py-2.5" style={{ backgroundColor: '#E8E2D8' }}>
+                  <p className="text-sm text-text-secondary leading-relaxed rounded-2xl rounded-br-sm px-4 py-2.5" style={{ backgroundColor: 'var(--color-surface-hover)' }}>
                     {msg.text}
                   </p>
                 )}

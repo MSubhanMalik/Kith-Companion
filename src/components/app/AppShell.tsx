@@ -23,8 +23,7 @@ export function AppShell({ children, currentRoute, onNavigate }: AppShellProps) 
       </main>
 
       <motion.button
-        className="fixed bottom-5 right-5 z-40 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer"
-        style={{ backgroundColor: chatOpen ? '#8B7D3C15' : 'transparent' }}
+        className={`fixed bottom-5 right-5 z-40 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer ${chatOpen ? 'bg-olive/8' : ''}`}
         onClick={() => setChatOpen(!chatOpen)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
