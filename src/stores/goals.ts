@@ -3,71 +3,67 @@ import { persist } from 'zustand/middleware'
 import type { Goal, Milestone, MilestoneStep, CategoryColorId } from '../types'
 import { assignColor } from '../lib/colors'
 
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
+}
+
+const SEED_GOALS: Goal[] = [
+  { id: 'g1', label: 'Earn $10K/month from freelancing', targetDate: '2026-12-31', currentStatus: '2 active clients', successMetric: 'Monthly revenue $10K', colorId: 'terracotta', rank: 1, weeklyHours: 16, createdAt: '2026-06-01', isPrivate: false, nickname: '' },
+  { id: 'g2', label: 'Launch startup MVP', targetDate: '2027-03-15', currentStatus: 'Landing page only', successMetric: '100 paid users', colorId: 'sage', rank: 2, weeklyHours: 10, createdAt: '2026-06-01', isPrivate: false, nickname: '' },
+  { id: 'g3', label: 'Train intern — web dev', targetDate: '2026-09-01', currentStatus: 'Starting week 2', successMetric: 'Intern ships full stack app', colorId: 'sienna', rank: 3, weeklyHours: 6, createdAt: '2026-06-01', isPrivate: false, nickname: '' },
+]
+
+const SEED_MILESTONES: Milestone[] = []
+
 interface GoalsStore {
   goals: Goal[]
   milestones: Milestone[]
 
   addGoal: (label: string, weeklyHours: number) => void
-  updateGoal: (id: string, updates: Partial<Pick<Goal, 'label' | 'weeklyHours' | 'colorId' | 'targetDate' | 'currentStatus' | 'successMetric'>>) => void
+  updateGoal: (id: string, updates: Partial<Goal>) => void
   removeGoal: (id: string) => void
   reorderGoals: (orderedIds: string[]) => void
 
   addMilestone: (goalId: string, text: string, weekOf: string) => void
-  updateMilestone: (id: string, updates: Partial<Pick<Milestone, 'text' | 'status' | 'successProof'>>) => void
+  updateMilestone: (id: string, updates: Partial<Milestone>) => void
   removeMilestone: (id: string) => void
 
   addStep: (milestoneId: string, text: string, estimatedMinutes: number) => void
-  updateStep: (milestoneId: string, stepId: string, updates: Partial<Pick<MilestoneStep, 'text' | 'estimatedMinutes' | 'status'>>) => void
+  updateStep: (milestoneId: string, stepId: string, updates: Partial<MilestoneStep>) => void
   removeStep: (milestoneId: string, stepId: string) => void
 
-  getMilestonesByGoal: (goalId: string, weekOf: string) => Milestone[]
   getGoalById: (id: string) => Goal | undefined
-  getAvailableHours: (totalAvailable: number) => number
-}
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
+  getGoalDisplayName: (goal: Goal) => string
 }
 
 export const useGoalsStore = create<GoalsStore>()(
   persist(
     (set, get) => ({
-      goals: [],
-      milestones: [],
+      goals: SEED_GOALS,
+      milestones: SEED_MILESTONES,
 
       addGoal: (label, weeklyHours) => {
         const { goals } = get()
         if (goals.length >= 10) return
-
         const colorId: CategoryColorId = assignColor(goals)
-        const goal: Goal = {
-          id: generateId(),
-          label,
-          targetDate: '',
-          currentStatus: '',
-          successMetric: '',
-          colorId,
-          rank: goals.length + 1,
-          weeklyHours,
-          createdAt: new Date().toISOString(),
-        }
-        set({ goals: [...goals, goal] })
+        set({
+          goals: [...goals, {
+            id: generateId(), label, targetDate: '', currentStatus: '', successMetric: '',
+            colorId, rank: goals.length + 1, weeklyHours, createdAt: new Date().toISOString(),
+            isPrivate: false, nickname: '',
+          }],
+        })
       },
 
       updateGoal: (id, updates) => {
-        set({
-          goals: get().goals.map(g =>
-            g.id === id ? { ...g, ...updates } : g
-          ),
-        })
+        set({ goals: get().goals.map(g => g.id === id ? { ...g, ...updates } : g) })
       },
 
       removeGoal: (id) => {
         const { goals, milestones } = get()
         const filtered = goals.filter(g => g.id !== id)
-        const reranked = filtered.map((g, i) => ({ ...g, rank: i + 1 }))
         set({
-          goals: reranked,
+          goals: filtered.map((g, i) => ({ ...g, rank: i + 1 })),
           milestones: milestones.filter(m => m.goalId !== id),
         })
       },
@@ -84,24 +80,15 @@ export const useGoalsStore = create<GoalsStore>()(
       },
 
       addMilestone: (goalId, text, weekOf) => {
-        const milestone: Milestone = {
-          id: generateId(),
-          goalId,
-          text,
-          successProof: '',
-          steps: [],
-          weekOf,
-          status: 'pending',
-        }
-        set({ milestones: [...get().milestones, milestone] })
+        set({
+          milestones: [...get().milestones, {
+            id: generateId(), goalId, text, successProof: '', steps: [], weekOf, status: 'pending',
+          }],
+        })
       },
 
       updateMilestone: (id, updates) => {
-        set({
-          milestones: get().milestones.map(m =>
-            m.id === id ? { ...m, ...updates } : m
-          ),
-        })
+        set({ milestones: get().milestones.map(m => m.id === id ? { ...m, ...updates } : m) })
       },
 
       removeMilestone: (id) => {
@@ -109,16 +96,10 @@ export const useGoalsStore = create<GoalsStore>()(
       },
 
       addStep: (milestoneId, text, estimatedMinutes) => {
-        const step: MilestoneStep = {
-          id: generateId(),
-          text,
-          estimatedMinutes,
-          status: 'pending',
-        }
         set({
           milestones: get().milestones.map(m =>
             m.id === milestoneId
-              ? { ...m, steps: [...m.steps, step] }
+              ? { ...m, steps: [...m.steps, { id: generateId(), text, estimatedMinutes, status: 'pending' }] }
               : m
           ),
         })
@@ -128,12 +109,7 @@ export const useGoalsStore = create<GoalsStore>()(
         set({
           milestones: get().milestones.map(m =>
             m.id === milestoneId
-              ? {
-                  ...m,
-                  steps: m.steps.map(s =>
-                    s.id === stepId ? { ...s, ...updates } : s
-                  ),
-                }
+              ? { ...m, steps: m.steps.map(s => s.id === stepId ? { ...s, ...updates } : s) }
               : m
           ),
         })
@@ -149,18 +125,9 @@ export const useGoalsStore = create<GoalsStore>()(
         })
       },
 
-      getMilestonesByGoal: (goalId, weekOf) => {
-        return get().milestones.filter(m => m.goalId === goalId && m.weekOf === weekOf)
-      },
+      getGoalById: (id) => get().goals.find(g => g.id === id),
 
-      getGoalById: (id) => {
-        return get().goals.find(g => g.id === id)
-      },
-
-      getAvailableHours: (totalAvailable) => {
-        const allocated = get().goals.reduce((sum, g) => sum + g.weeklyHours, 0)
-        return Math.max(0, totalAvailable - allocated)
-      },
+      getGoalDisplayName: (goal) => goal.isPrivate ? goal.nickname : goal.label,
     }),
     { name: 'kith-goals' }
   )

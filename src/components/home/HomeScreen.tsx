@@ -3,6 +3,8 @@ import { motion, Reorder } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Cat } from '../cat/Cat'
 import { TaskModal } from '../goals/TaskModal'
+import { useGoalsStore } from '../../stores/goals'
+import { getGoalColor } from '../../lib/colors'
 
 interface Task {
   id: string
@@ -22,16 +24,23 @@ const INITIAL_TASKS: Task[] = [
   { id: '5', time: '11:30 PM', task: 'Write LinkedIn post: weekly recap', goal: 'LinkedIn', output: 'Post drafted and scheduled', color: '#B08455', status: 'upcoming' },
 ]
 
-const GOALS_SUMMARY = [
-  { label: 'Freelancing', color: '#C4745C', done: 4, total: 7 },
-  { label: 'Startup', color: '#7A9A6D', done: 2, total: 5 },
-  { label: 'LinkedIn', color: '#B08455', done: 1, total: 4 },
-]
-
 export function HomeScreen() {
   const [tasks, setTasks] = useState(INITIAL_TASKS)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [newTask, setNewTask] = useState('')
+
+  const goals = useGoalsStore(s => s.goals)
+  const getGoalDisplayName = useGoalsStore(s => s.getGoalDisplayName)
+
+  const goalsSummary = goals.filter(g => !g.isPrivate).map(g => {
+    const color = getGoalColor(g.colorId)
+    return {
+      label: getGoalDisplayName(g),
+      color: color.bg,
+      done: 0,
+      total: 0,
+    }
+  })
 
   const doneCount = tasks.filter(t => t.status === 'done').length
 
@@ -149,7 +158,7 @@ export function HomeScreen() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          {GOALS_SUMMARY.map((g, i) => {
+          {goalsSummary.map((g, i) => {
             const pct = g.total > 0 ? (g.done / g.total) * 100 : 0
             return (
               <div key={i}>

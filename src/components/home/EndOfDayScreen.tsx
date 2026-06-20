@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Button } from '../ui/Button'
 import { Cat } from '../cat/Cat'
+import { useTodayStore } from '../../stores/today'
 
 interface Task {
   id: string
@@ -28,9 +29,16 @@ const TOMORROW = [
 
 export function EndOfDayScreen() {
   const [tasks, setTasks] = useState(INITIAL)
+  const completeNight = useTodayStore(s => s.completeNight)
+  const setTomorrowTopThree = useTodayStore(s => s.setTomorrowTopThree)
 
   function toggleDone(id: string) {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  }
+
+  function handleCloseDay() {
+    completeNight()
+    setTomorrowTopThree(TOMORROW.map(t => t.task))
   }
 
   const doneCount = tasks.filter(t => t.done).length
@@ -94,7 +102,7 @@ export function EndOfDayScreen() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-6">
-          <Button variant="primary" label="Close the day" />
+          <Button variant="primary" label="Close the day" onClick={handleCloseDay} />
         </motion.div>
       </div>
     </PageTransition>

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Cat } from '../cat/Cat'
 import { exportWeeklySchedule } from '../../lib/export'
-
 type View = 'week' | 'month'
 
 const WEEK_COLS = [
@@ -53,7 +52,6 @@ const MONTH = [
 export function WeekScreen() {
   const [view, setView] = useState<View>('week')
   const todayDate = '18'
-
   return (
     <PageTransition>
       <div className="pt-6 pb-12">

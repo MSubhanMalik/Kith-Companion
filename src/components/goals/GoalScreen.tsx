@@ -4,6 +4,8 @@ import { PageTransition } from '../ui/PageTransition'
 import { Cat } from '../cat/Cat'
 import { Button } from '../ui/Button'
 import { exportGoalSchedule } from '../../lib/export'
+import { useGoalsStore } from '../../stores/goals'
+import { getGoalColor } from '../../lib/colors'
 
 type ViewMode = 'tasks' | 'plan'
 
@@ -67,7 +69,6 @@ const INITIAL_PLAN: PlanWeek[] = [
   ]},
 ]
 
-const GOAL = { label: 'Train intern — web dev', color: '#B08455' }
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 interface GoalScreenProps {
@@ -75,6 +76,13 @@ interface GoalScreenProps {
 }
 
 export function GoalScreen({ onBack }: GoalScreenProps) {
+  const goals = useGoalsStore(s => s.goals)
+  const getGoalDisplayName = useGoalsStore(s => s.getGoalDisplayName)
+
+  const goal = goals[2] ?? goals[0]
+  const goalLabel = goal ? getGoalDisplayName(goal) : 'Goal'
+  const goalColor = goal ? getGoalColor(goal.colorId).bg : '#B08455'
+
   const [tasks, setTasks] = useState(INITIAL_TASKS)
   const [plan, setPlan] = useState(INITIAL_PLAN)
   const [viewMode, setViewMode] = useState<ViewMode>('plan')
@@ -133,19 +141,19 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
             <button onClick={() => setShowPanel(!showPanel)} className={`text-[0.625rem] cursor-pointer transition-colors ${showPanel ? 'text-text-muted hover:text-olive' : 'text-olive'}`}>
               {showPanel ? 'Hide panel' : 'Show panel'}
             </button>
-            <button onClick={() => exportGoalSchedule(GOAL.label)} className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer transition-colors">Export ↓</button>
+            <button onClick={() => exportGoalSchedule(goalLabel)} className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer transition-colors">Export ↓</button>
             <Button variant="primary" size="sm" label="Adjust times" onClick={() => {}} />
           </div>
         </div>
 
         <div className="mb-8">
           <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: GOAL.color }} />
-            <h1 className="text-lg font-bold text-text-primary" style={{ letterSpacing: '-0.02em' }}>{GOAL.label}</h1>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: goalColor }} />
+            <h1 className="text-lg font-bold text-text-primary" style={{ letterSpacing: '-0.02em' }}>{goalLabel}</h1>
             <span className="text-xs text-text-muted ml-auto">{done}/{tasks.length}</span>
           </div>
           <div className="h-[2px] bg-border/30 rounded-full overflow-hidden ml-5">
-            <motion.div className="h-full rounded-full" style={{ backgroundColor: GOAL.color }}
+            <motion.div className="h-full rounded-full" style={{ backgroundColor: goalColor }}
               initial={{ width: 0 }} animate={{ width: `${tasks.length > 0 ? (done / tasks.length) * 100 : 0}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }} />
           </div>
@@ -163,7 +171,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                     }
                     return (
                       <motion.div key={wi} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: wi * 0.05 }} className="mb-8">
-                        <p className={`text-xs font-semibold mb-3 ${weekDone ? 'text-text-muted/50' : ''}`} style={!weekDone ? { color: GOAL.color } : {}}>
+                        <p className={`text-xs font-semibold mb-3 ${weekDone ? 'text-text-muted/50' : ''}`} style={!weekDone ? { color: goalColor } : {}}>
                           Week {week.week} {weekDone && '· done'}
                         </p>
                         <Reorder.Group axis="x" values={week.days} onReorder={reorderWeek} className="grid grid-cols-3 gap-2" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -171,16 +179,16 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                             <Reorder.Item key={day.id} value={day} className="list-none">
                               <div
                                 className={`rounded-xl px-3.5 py-3 cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-transform ${day.done ? 'opacity-30' : ''} ${selectedTask?.id === day.id ? 'ring-1 ring-olive/30' : ''}`}
-                                style={{ backgroundColor: day.done ? 'var(--color-surface-hover)' : `${GOAL.color}06` }}
+                                style={{ backgroundColor: day.done ? 'var(--color-surface-hover)' : `${goalColor}06` }}
                                 onClick={() => setSelectedTask({ id: day.id, text: day.topic, day: day.day, time: '2:00 PM', done: day.done, description: day.detail, output: day.output })}
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <span className="text-[0.625rem] text-text-muted">{day.day}</span>
-                                  {day.done && <span className="text-[0.375rem]" style={{ color: GOAL.color }}>✓</span>}
+                                  {day.done && <span className="text-[0.375rem]" style={{ color: goalColor }}>✓</span>}
                                 </div>
                                 <p className={`text-[0.8125rem] font-medium leading-snug ${day.done ? 'line-through text-text-muted' : 'text-text-primary'}`}>{day.topic}</p>
                                 <p className="text-[0.625rem] text-text-muted mt-0.5">{day.detail}</p>
-                                <p className="text-[0.625rem] mt-1.5" style={{ color: day.done ? 'var(--color-text-muted)' : GOAL.color }}>→ {day.output}</p>
+                                <p className="text-[0.625rem] mt-1.5" style={{ color: day.done ? 'var(--color-text-muted)' : goalColor }}>→ {day.output}</p>
                               </div>
                             </Reorder.Item>
                           ))}
@@ -193,7 +201,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                 {showPanel && <div className="w-[15rem] shrink-0">
                   <AnimatePresence mode="wait">
                     {selectedTask ? (
-                      <TaskDetailPanel key="detail" task={selectedTask} goalColor={GOAL.color} onUpdate={updateSelected} onClose={() => setSelectedTask(null)} onRemove={() => removeTask(selectedTask.id)} onToggleDone={() => toggleDone(selectedTask.id)} />
+                      <TaskDetailPanel key="detail" task={selectedTask} goalColor={goalColor} onUpdate={updateSelected} onClose={() => setSelectedTask(null)} onRemove={() => removeTask(selectedTask.id)} onToggleDone={() => toggleDone(selectedTask.id)} />
                     ) : (
                       <NotesPanel key="notes" notes={notes} onNotesChange={setNotes} />
                     )}
@@ -221,18 +229,18 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                     <motion.div key={task.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                       className={`grid grid-cols-[2.5rem_3rem_1fr_1fr_8rem_2rem] gap-x-4 items-center py-3 border-b border-border/20 cursor-pointer transition-colors overflow-hidden ${selectedTask?.id === task.id ? 'bg-olive/[0.03]' : 'hover:bg-surface-hover'}`}
                       onClick={() => setSelectedTask(task)}>
-                      <span className="text-xs pt-0.5 font-semibold" style={{ color: showWeek ? GOAL.color : 'transparent' }}>{showWeek ? weekNum : ''}</span>
+                      <span className="text-xs pt-0.5 font-semibold" style={{ color: showWeek ? goalColor : 'transparent' }}>{showWeek ? weekNum : ''}</span>
                       <span className={`text-xs pt-0.5 ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.day}</span>
                       <span className={`text-sm ${task.done ? 'text-text-muted/50 line-through' : 'text-text-primary font-medium'}`}>{task.text}</span>
                       <span className={`text-xs truncate ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.description || '—'}</span>
-                      <span className="text-xs truncate" style={{ color: task.done ? 'var(--color-text-muted)' : GOAL.color }}>{task.output || '—'}</span>
+                      <span className="text-xs truncate" style={{ color: task.done ? 'var(--color-text-muted)' : goalColor }}>{task.output || '—'}</span>
                       <div className="flex justify-center pt-0.5">
                         <motion.div className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer"
-                          style={task.done ? { backgroundColor: `${GOAL.color}18` } : { border: '1.5px solid var(--color-border)' }}
+                          style={task.done ? { backgroundColor: `${goalColor}18` } : { border: '1.5px solid var(--color-border)' }}
                           onClick={e => { e.stopPropagation(); toggleDone(task.id) }}
                           whileTap={{ scale: 1.4 }}
                           transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
-                          {task.done && <span className="text-[0.375rem]" style={{ color: GOAL.color }}>✓</span>}
+                          {task.done && <span className="text-[0.375rem]" style={{ color: goalColor }}>✓</span>}
                         </motion.div>
                       </div>
                     </motion.div>
@@ -250,7 +258,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                       className="text-xs text-text-muted bg-transparent focus:outline-none placeholder:text-text-muted/50" />
                     <input value={newOutput} onChange={e => setNewOutput(e.target.value)} placeholder="Output..."
                       onKeyDown={e => e.key === 'Enter' && addTask()}
-                      className="text-xs bg-transparent focus:outline-none placeholder:text-text-muted/50" style={{ color: GOAL.color }} />
+                      className="text-xs bg-transparent focus:outline-none placeholder:text-text-muted/50" style={{ color: goalColor }} />
                     <button onClick={addTask} className="text-xs text-olive hover:text-olive-hover cursor-pointer text-center">+</button>
                   </div>
                 </div>
@@ -258,7 +266,7 @@ export function GoalScreen({ onBack }: GoalScreenProps) {
                 {showPanel && <div className="w-[14rem] shrink-0">
                   <AnimatePresence mode="wait">
                     {selectedTask ? (
-                      <TaskDetailPanel key="detail" task={selectedTask} goalColor={GOAL.color} onUpdate={updateSelected} onClose={() => setSelectedTask(null)} onRemove={() => removeTask(selectedTask.id)} onToggleDone={() => toggleDone(selectedTask.id)} />
+                      <TaskDetailPanel key="detail" task={selectedTask} goalColor={goalColor} onUpdate={updateSelected} onClose={() => setSelectedTask(null)} onRemove={() => removeTask(selectedTask.id)} onToggleDone={() => toggleDone(selectedTask.id)} />
                     ) : (
                       <NotesPanel key="notes" notes={notes} onNotesChange={setNotes} />
                     )}

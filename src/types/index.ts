@@ -46,6 +46,8 @@ export interface Goal {
   rank: number
   weeklyHours: number
   createdAt: string
+  isPrivate: boolean
+  nickname: string
 }
 
 export interface MilestoneStep {

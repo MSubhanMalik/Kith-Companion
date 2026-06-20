@@ -10,8 +10,7 @@ import { WeekScreen } from '../week/WeekScreen'
 import { GoalsListScreen } from '../goals/GoalsListScreen'
 import { GoalScreen } from '../goals/GoalScreen'
 import { SettingsScreen } from '../settings/SettingsScreen'
-
-type Step = 'welcome' | 'setup' | 'preview'
+import { useOnboardingStore } from '../../stores/onboarding'
 
 function getRoute(): string {
   return window.location.hash.replace('#app/', '').replace('#app', '') || 'home'
@@ -19,8 +18,7 @@ function getRoute(): string {
 
 export function AppRouter() {
   const [route, setRoute] = useState(getRoute)
-  const [onboarded, setOnboarded] = useState(false)
-  const [step, setStep] = useState<Step>('welcome')
+  const { step, isComplete, setStep, complete } = useOnboardingStore()
 
   useEffect(() => {
     document.body.style.overflow = 'auto'
@@ -37,12 +35,12 @@ export function AppRouter() {
     setRoute(r)
   }
 
-  if (!onboarded) {
+  if (!isComplete) {
     return (
       <AnimatePresence mode="wait">
-        {step === 'welcome' && <WelcomeScreen key="w" onNext={() => setStep('setup')} />}
-        {step === 'setup' && <SetupScreen key="s" onNext={() => setStep('preview')} onBack={() => setStep('welcome')} />}
-        {step === 'preview' && <SchedulePreviewScreen key="p" onLockIn={() => { setOnboarded(true); nav('home') }} onBack={() => setStep('setup')} />}
+        {step === 'welcome' && <WelcomeScreen key="w" onNext={() => setStep('goals')} />}
+        {step === 'goals' && <SetupScreen key="s" onNext={() => setStep('preview')} onBack={() => setStep('welcome')} />}
+        {step === 'preview' && <SchedulePreviewScreen key="p" onLockIn={() => { complete(); nav('home') }} onBack={() => setStep('goals')} />}
       </AnimatePresence>
     )
   }
