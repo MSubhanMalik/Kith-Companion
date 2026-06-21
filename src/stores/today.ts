@@ -185,6 +185,6 @@ export const useTodayStore = create<TodayStore>()(
         })
       },
     }),
-    { name: 'kith-today' }
+    { name: 'kith-today', version: 2, migrate: () => ({ logs: {}, nudges: [] }) }
   )
 )

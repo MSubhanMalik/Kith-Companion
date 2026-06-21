@@ -115,7 +115,7 @@ export function RegisterScreen({ onRegister, onGoogleLogin, onSwitchToLogin }: R
           {error && <p className="text-xs text-direction">{error}</p>}
 
           <div className="mt-2">
-            <Button variant="primary" size="md" label="Create account" fullWidth />
+            <Button variant="primary" size="md" label="Create account" fullWidth type="submit" />
           </div>
         </form>
 

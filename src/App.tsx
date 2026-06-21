@@ -5,7 +5,6 @@ import { Avatar } from "./components/avatar/Avatar";
 import { Boss } from "./components/boss/Boss";
 import { MessageWindow } from "./MessageWindow";
 import { AppLayout } from "./layout/AppLayout";
-import type { BubbleType } from "./components/cat/CatBubble";
 import type { CatState } from "./components/cat/types";
 import { useCatStore } from "./stores/cat";
 import { usePetStore } from "./stores/pet";
@@ -30,6 +29,8 @@ declare global {
       showMessage: (data: Record<string, unknown>) => void;
       hideMessage: () => void;
       onMessageAction: (cb: (action: string) => void) => void;
+      onNudgeArrived: (cb: (data: Record<string, unknown>) => void) => void;
+      onNudgeDismissed: (cb: () => void) => void;
       openApp: () => void;
       openAppRoute: (route: string) => void;
       getFilePath: (file: File) => string;
@@ -39,24 +40,8 @@ declare global {
 }
 
 const READABLE_EXTENSIONS = new Set([
-  "md",
-  "txt",
-  "pdf",
-  "doc",
-  "docx",
-  "rtf",
-  "tex",
-  "csv",
-  "json",
-  "html",
-  "htm",
-  "xml",
-  "epub",
-  "odt",
-  "pages",
-  "log",
-  "rst",
-  "adoc",
+  "md", "txt", "pdf", "doc", "docx", "rtf", "tex", "csv",
+  "json", "html", "htm", "xml", "epub", "odt", "pages", "log", "rst", "adoc",
 ]);
 
 function getExtension(filename: string): string {
@@ -68,47 +53,6 @@ function isReadableFile(filename: string): boolean {
   return READABLE_EXTENSIONS.has(getExtension(filename));
 }
 
-const DEMO_BUBBLES: Array<{
-  type: BubbleType;
-  label: string;
-  message: string;
-  primary: string;
-  secondary: string;
-}> = [
-  {
-    type: "hook",
-    label: "goal check",
-    message:
-      "Freelancing is your #1 goal but you haven't touched it since 7 PM. Swap tonight's slot?",
-    primary: "Swap it",
-    secondary: "Later",
-  },
-  {
-    type: "connection",
-    label: "nice progress",
-    message:
-      "That's 3 DM batches done this week. 2 more and you hit your outreach target.",
-    primary: "Show goals",
-    secondary: "Dismiss",
-  },
-  {
-    type: "fetch",
-    label: "heads up",
-    message:
-      "Startup MVP is behind pace. At 6h/week it ships in August, not March. Add more time?",
-    primary: "Reschedule",
-    secondary: "Keep it",
-  },
-  {
-    type: "direction",
-    label: "just checking",
-    message:
-      "You've spent 3 hours on LinkedIn this week but only 1 on freelancing. Intentional?",
-    primary: "Fix it",
-    secondary: "It's fine",
-  },
-];
-
 function getRoute() {
   return window.location.hash;
 }
@@ -117,7 +61,6 @@ function PetApp() {
   const { pet, toggle } = usePetStore();
   const { state, setState } = useCatStore();
   const [bubbleVisible, setBubbleVisible] = useState(false);
-  const [bubbleIndex, setBubbleIndex] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -132,6 +75,16 @@ function PetApp() {
       window.electronAPI?.hideMessage();
       setState("idle");
       window.electronAPI?.openApp();
+    });
+
+    window.electronAPI?.onNudgeArrived(() => {
+      setBubbleVisible(true);
+      setState("alert");
+    });
+
+    window.electronAPI?.onNudgeDismissed(() => {
+      setBubbleVisible(false);
+      setState("idle");
     });
   }, [setState]);
 
@@ -250,21 +203,9 @@ function PetApp() {
       window.electronAPI?.hideMessage();
       setState("idle");
     } else {
-      const idx = (bubbleIndex + 1) % DEMO_BUBBLES.length;
-      setBubbleIndex(idx);
-      setBubbleVisible(true);
-      setState("alert");
-      const b = DEMO_BUBBLES[idx];
-      window.electronAPI?.showMessage({
-        kind: "bubble",
-        type: b.type,
-        label: b.label,
-        message: b.message,
-        primaryAction: b.primary,
-        secondaryAction: b.secondary,
-      });
+      window.electronAPI?.openApp();
     }
-  }, [bubbleVisible, setState, state, bubbleIndex]);
+  }, [bubbleVisible, setState, state]);
 
   const isInteractionBlocked = bubbleVisible || INTERACTION_BLOCK_STATES.has(state);
 

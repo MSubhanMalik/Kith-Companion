@@ -14,6 +14,7 @@ function getRoute(): string {
 
 export function AppRouter() {
   const [route, setRoute] = useState(getRoute)
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null)
 
   useEffect(() => {
     const onHash = () => setRoute(getRoute())
@@ -26,20 +27,25 @@ export function AppRouter() {
     setRoute(r)
   }
 
+  function handleGoalClick(id: number) {
+    setSelectedGoalId(id)
+    nav('goal')
+  }
+
   function screen() {
     switch (route) {
       case 'home': return <HomeScreen key="home" />
       case 'review': return <EndOfDayScreen key="review" />
       case 'week': return <WeekScreen key="week" />
-      case 'goals': return <GoalsListScreen key="goals" onGoalClick={() => nav('goal')} />
-      case 'goal': return <GoalScreen key="goal" onBack={() => nav('goals')} />
+      case 'goals': return <GoalsListScreen key="goals" onGoalClick={handleGoalClick} />
+      case 'goal': return <GoalScreen key="goal" goalId={selectedGoalId} onBack={() => nav('goals')} />
       case 'profile': return <ProfileScreen key="profile" />
       default: return <HomeScreen key="home" />
     }
   }
 
   return (
-    <AppShell currentRoute={route} onNavigate={nav}>
+    <AppShell currentRoute={route} selectedGoalId={selectedGoalId} onNavigate={nav}>
       <AnimatePresence mode="wait">
         {screen()}
       </AnimatePresence>

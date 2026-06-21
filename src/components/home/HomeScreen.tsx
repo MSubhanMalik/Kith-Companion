@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, Reorder } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { Cat } from '../cat/Cat'
@@ -8,8 +8,10 @@ import { SectionLabel } from '../ui/SectionLabel'
 import { TaskModal } from '../goals/TaskModal'
 import { useGoalsStore } from '../../stores/goals'
 import { getGoalColor } from '../../lib/colors'
+import { todayService } from '../../services/TodayService'
+import { useCatStore } from '../../stores/cat'
 
-interface Task {
+interface Block {
   id: string
   time: string
   task: string
@@ -17,57 +19,100 @@ interface Task {
   output: string
   color: string
   status: 'done' | 'active' | 'upcoming'
+  blockId: number
 }
 
-const INITIAL_TASKS: Task[] = [
-  { id: '1', time: '5:30 PM', task: 'Send 5 cold DMs to agency founders', goal: 'Freelancing', output: '5 personalized DMs sent', color: '#C4745C', status: 'done' },
-  { id: '2', time: '7:00 PM', task: 'Follow up on API client re: SOW', goal: 'Freelancing', output: 'Follow-up email with next steps', color: '#C4745C', status: 'done' },
-  { id: '3', time: '8:00 PM', task: 'Gym', goal: '', output: '', color: '', status: 'done' },
-  { id: '4', time: '9:30 PM', task: 'Build Stripe checkout flow', goal: 'Startup', output: 'Test payment works on staging', color: '#7A9A6D', status: 'active' },
-  { id: '5', time: '11:30 PM', task: 'Write LinkedIn post: weekly recap', goal: 'LinkedIn', output: 'Post drafted and scheduled', color: '#B08455', status: 'upcoming' },
-]
+function formatTime12(time24: string): string {
+  const [h, m] = time24.split(':').map(Number)
+  const suffix = h >= 12 ? 'PM' : 'AM'
+  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return m === 0 ? `${hour} ${suffix}` : `${hour}:${String(m).padStart(2, '0')} ${suffix}`
+}
 
 export function HomeScreen() {
-  const [tasks, setTasks] = useState(INITIAL_TASKS)
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-  const [newTask, setNewTask] = useState('')
+  const [blocks, setBlocks] = useState<Block[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null)
 
   const goals = useGoalsStore(s => s.goals)
   const getGoalDisplayName = useGoalsStore(s => s.getGoalDisplayName)
 
+  useEffect(() => {
+    loadToday()
+  }, [])
+
+  async function loadToday() {
+    setLoading(true)
+    try {
+      const data = await todayService.getToday() as { blocks: Array<{ id: number; label: string; time: { start: string }; taskDescription: string; outputDefinition: string; goalId: number; status: string; type: string }>; completions: Record<string, string> }
+      const mapped: Block[] = (data.blocks || []).map(b => {
+        const goal = goals.find(g => Number(g.id) === b.goalId)
+        const goalColor = goal ? getGoalColor(goal.colorId).bg : ''
+        const completionStatus = data.completions?.[b.id]
+        let status: 'done' | 'active' | 'upcoming' = 'upcoming'
+        if (completionStatus === 'DONE') status = 'done'
+        else if (b.status === 'COMPLETED') status = 'done'
+
+        return {
+          id: String(b.id),
+          time: formatTime12(b.time.start),
+          task: b.label,
+          goal: goal ? getGoalDisplayName(goal) : (b.type === 'LIFE_BLOCK' ? '' : ''),
+          output: b.outputDefinition || '',
+          color: goalColor,
+          status,
+          blockId: b.id,
+        }
+      })
+      setBlocks(mapped)
+    } catch {}
+    setLoading(false)
+  }
+
+  const setCatState = useCatStore(s => s.setState)
+
+  async function toggleDone(id: string) {
+    const block = blocks.find(b => b.id === id)
+    if (!block) return
+    const newStatus = block.status === 'done' ? 'PENDING' : 'DONE'
+    try {
+      await todayService.completeBlock(block.blockId, newStatus)
+      setBlocks(prev => prev.map(b => {
+        if (b.id !== id) return b
+        return { ...b, status: newStatus === 'DONE' ? 'done' as const : 'upcoming' as const }
+      }))
+      if (newStatus === 'DONE') {
+        setCatState('happy')
+        setTimeout(() => setCatState('idle'), 3000)
+      }
+    } catch {}
+  }
+
   const goalsSummary = goals.filter(g => !g.isPrivate).map(g => {
     const color = getGoalColor(g.colorId)
+    const goalBlocks = blocks.filter(b => b.goal === getGoalDisplayName(g))
+    const done = goalBlocks.filter(b => b.status === 'done').length
     return {
       label: getGoalDisplayName(g),
       color: color.bg,
-      done: 0,
-      total: 0,
+      done,
+      total: goalBlocks.length,
     }
   })
 
-  const doneCount = tasks.filter(t => t.status === 'done').length
+  const doneCount = blocks.filter(t => t.status === 'done').length
 
-  function toggleDone(id: string) {
-    setTasks(prev => prev.map(t => {
-      if (t.id !== id) return t
-      if (t.status === 'done') return { ...t, status: 'upcoming' as const }
-      return { ...t, status: 'done' as const }
-    }))
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="pt-6 pb-12 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 10rem)' }}>
+          <Cat state="thinking" size={48} />
+        </div>
+      </PageTransition>
+    )
   }
 
-  function addTask() {
-    if (!newTask.trim()) return
-    const id = Date.now().toString()
-    setTasks(prev => [...prev, { id, time: '—', task: newTask.trim(), goal: '', output: '', color: '#9C8F80', status: 'upcoming' as const }])
-    setNewTask('')
-  }
-
-  function removeTask(id: string) {
-    setTasks(prev => prev.filter(t => t.id !== id))
-    setSelectedTask(null)
-  }
-
-  if (tasks.length === 0) {
+  if (blocks.length === 0) {
     return (
       <PageTransition>
         <div className="pt-6 pb-12 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 10rem)' }}>
@@ -83,9 +128,9 @@ export function HomeScreen() {
       <div className="pt-6 pb-12">
         <ScreenHeader
           catState="idle"
-          message={`Wednesday · ${doneCount} of ${tasks.length} done`}
+          message={`${new Date().toLocaleDateString('en-US', { weekday: 'long' })} · ${doneCount} of ${blocks.length} done`}
           right={
-            doneCount >= tasks.length - 1
+            doneCount >= blocks.length - 1
               ? <a href="#app/review" className="text-xs text-olive font-medium hover:text-olive-hover cursor-pointer">Close the day →</a>
               : <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer">review</a>
           }
@@ -98,8 +143,8 @@ export function HomeScreen() {
           <SectionLabel className="text-right">Status</SectionLabel>
         </div>
 
-        <Reorder.Group axis="y" values={tasks} onReorder={setTasks}>
-          {tasks.map((row) => {
+        <Reorder.Group axis="y" values={blocks} onReorder={setBlocks}>
+          {blocks.map((row) => {
             const isActive = row.status === 'active'
             const isDone = row.status === 'done'
 
@@ -113,7 +158,7 @@ export function HomeScreen() {
                   <div>
                     <p
                       className={`text-sm leading-snug cursor-pointer ${isDone ? 'text-text-muted line-through' : isActive ? 'text-text-primary font-medium' : 'text-text-secondary'} hover:text-olive transition-colors`}
-                      onClick={() => setSelectedTask(row)}
+                      onClick={() => setSelectedBlock(row)}
                     >
                       {row.task}
                     </p>
@@ -143,17 +188,6 @@ export function HomeScreen() {
           })}
         </Reorder.Group>
 
-        <div className="flex items-center gap-3 mt-4 px-1">
-          <span className="text-xs text-text-muted/50 w-[4rem]">+</span>
-          <input
-            value={newTask}
-            onChange={e => setNewTask(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addTask()}
-            placeholder="add a task..."
-            className="flex-1 text-sm text-text-primary bg-transparent border-b border-border/40 pb-1.5 focus:outline-none focus:border-olive placeholder:text-text-muted/50"
-          />
-        </div>
-
         <FadeIn delay={0.2} y={6} className="mt-10 grid grid-cols-3 gap-4">
           {goalsSummary.map((g, i) => {
             const pct = g.total > 0 ? (g.done / g.total) * 100 : 0
@@ -172,14 +206,14 @@ export function HomeScreen() {
         </FadeIn>
       </div>
 
-      {selectedTask && (
+      {selectedBlock && (
         <TaskModal
-          visible={!!selectedTask}
-          task={{ text: selectedTask.task, day: 'Wed', time: selectedTask.time, done: selectedTask.status === 'done', description: '', output: selectedTask.output }}
-          goalColor={selectedTask.color || '#9C8F80'}
-          onClose={() => setSelectedTask(null)}
-          onToggleDone={() => { toggleDone(selectedTask.id); setSelectedTask(null) }}
-          onRemove={() => removeTask(selectedTask.id)}
+          visible={!!selectedBlock}
+          task={{ text: selectedBlock.task, day: new Date().toLocaleDateString('en-US', { weekday: 'short' }), time: selectedBlock.time, done: selectedBlock.status === 'done', description: '', output: selectedBlock.output }}
+          goalColor={selectedBlock.color || '#9C8F80'}
+          onClose={() => setSelectedBlock(null)}
+          onToggleDone={() => { toggleDone(selectedBlock.id); setSelectedBlock(null) }}
+          onRemove={() => setSelectedBlock(null)}
         />
       )}
     </PageTransition>

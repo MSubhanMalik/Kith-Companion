@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { PageTransition } from '../ui/PageTransition'
 import { ScreenHeader } from '../ui/ScreenHeader'
@@ -9,9 +9,10 @@ import { useGoalsStore } from '../../stores/goals'
 import { useScheduleStore } from '../../stores/schedule'
 import { getGoalColor } from '../../lib/colors'
 import { DAY_LABELS } from '../../types'
+import { goalService } from '../../services/GoalService'
 
 interface GoalsListScreenProps {
-  onGoalClick: (id: string) => void
+  onGoalClick: (id: number) => void
 }
 
 export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
@@ -28,6 +29,21 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newGoal, setNewGoal] = useState('')
   const [privateExpanded, setPrivateExpanded] = useState(false)
+  const [taskCounts, setTaskCounts] = useState<Record<string, { done: number; total: number }>>({})
+
+  useEffect(() => {
+    async function loadCounts() {
+      const counts: Record<string, { done: number; total: number }> = {}
+      await Promise.all(goals.map(async (g) => {
+        try {
+          const tasks = await goalService.listTasks(Number(g.id)) as Array<{ status: string }>
+          counts[g.id] = { done: tasks.filter(t => t.status === 'DONE').length, total: tasks.length }
+        } catch {}
+      }))
+      setTaskCounts(counts)
+    }
+    if (goals.length > 0) loadCounts()
+  }, [goals])
 
   function updateGoal(id: string, label: string) {
     updateGoalInStore(id, { label })
@@ -68,7 +84,7 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
               <Reorder.Item key={goal.id} value={goal} className="list-none">
                 <div
                   className="grid grid-cols-[1fr_4rem_4rem_5rem] gap-x-3 items-center py-3 px-1 cursor-pointer rounded-lg hover:bg-surface-hover transition-colors"
-                  onClick={() => onGoalClick(goal.id)}
+                  onClick={() => onGoalClick(Number(goal.id))}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color.bg }} />
@@ -86,8 +102,8 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-text-muted/50">0/0</span>
-                  <span className="text-xs text-text-muted/50">0/{goal.weeklyHours}h</span>
+                  <span className="text-xs text-text-muted/50">{taskCounts[goal.id]?.done ?? 0}/{taskCounts[goal.id]?.total ?? 0}</span>
+                  <span className="text-xs text-text-muted/50">{goal.weeklyHours}h</span>
                   <div className="flex items-center justify-end gap-2">
                     <span className="text-xs text-text-muted">{goal.currentStatus || 'new'}</span>
                     {editingId === goal.id && (
@@ -138,15 +154,15 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
                         >
                           <div
                             className="grid grid-cols-[1fr_4rem_4rem_5rem] gap-x-3 items-center py-3 px-1 cursor-pointer rounded-lg hover:bg-surface-hover transition-colors"
-                            onClick={() => onGoalClick(goal.id)}
+                            onClick={() => onGoalClick(Number(goal.id))}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color.bg }} />
                               <span className="text-sm font-medium text-text-primary truncate">{goal.nickname}</span>
                               <span className="text-[0.5rem] text-olive">🔒</span>
                             </div>
-                            <span className="text-xs text-text-muted/50">0/0</span>
-                            <span className="text-xs text-text-muted/50">0/{goal.weeklyHours}h</span>
+                            <span className="text-xs text-text-muted/50">{taskCounts[goal.id]?.done ?? 0}/{taskCounts[goal.id]?.total ?? 0}</span>
+                            <span className="text-xs text-text-muted/50">{goal.weeklyHours}h</span>
                             <span className="text-xs text-right text-text-muted">{goal.currentStatus || 'new'}</span>
                           </div>
                         </FadeIn>
@@ -167,23 +183,60 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
 
 function LifeBlocksSection() {
   const lifeBlocks = useScheduleStore(s => s.lifeBlocks)
+  const addLifeBlock = useScheduleStore(s => s.addLifeBlock)
+  const removeLifeBlock = useScheduleStore(s => s.removeLifeBlock)
+  const [adding, setAdding] = useState(false)
+  const [newLabel, setNewLabel] = useState('')
+  const [newStart, setNewStart] = useState('09:00')
+  const [newEnd, setNewEnd] = useState('17:00')
+
+  function handleAdd() {
+    if (!newLabel.trim()) return
+    addLifeBlock({
+      label: newLabel.trim(),
+      days: ['mon', 'tue', 'wed', 'thu', 'fri'],
+      time: { start: newStart, end: newEnd },
+    })
+    setNewLabel('')
+    setNewStart('09:00')
+    setNewEnd('17:00')
+    setAdding(false)
+  }
 
   return (
     <FadeIn delay={0.25} y={0} className="mt-12">
       <SectionLabel className="mb-4">Non-negotiables</SectionLabel>
-      {lifeBlocks.map((b, i) => {
+      {lifeBlocks.map((b) => {
         const dayLabels = b.days.map(d => DAY_LABELS[d as keyof typeof DAY_LABELS] || d)
         const dayRange = dayLabels.length === 7 ? 'Every day' : dayLabels.join(', ')
         const start = formatHour(b.time.start)
         const end = formatHour(b.time.end)
         return (
-          <div key={i} className="flex items-center justify-between py-2.5">
+          <div key={b.id} className="flex items-center justify-between py-2.5 group">
             <span className="text-sm text-text-primary">{b.label}</span>
-            <span className="text-xs text-text-muted">{start}–{end} · {dayRange}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-text-muted">{start}–{end} · {dayRange}</span>
+              <button onClick={() => removeLifeBlock(b.id)} className="text-[0.625rem] text-text-muted/0 group-hover:text-text-muted/50 hover:!text-direction cursor-pointer transition-colors">✕</button>
+            </div>
           </div>
         )
       })}
-      <Button variant="ghost" size="sm" label="+ add block" />
+      {adding ? (
+        <div className="flex items-center gap-2 mt-2">
+          <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Label"
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            className="flex-1 text-sm text-text-primary bg-transparent border-b border-border/40 pb-1.5 focus:outline-none focus:border-olive placeholder:text-text-muted/50" />
+          <input type="time" value={newStart} onChange={e => setNewStart(e.target.value)}
+            className="text-xs text-text-muted bg-transparent border-b border-border/40 pb-1.5 focus:outline-none focus:border-olive w-20" />
+          <span className="text-xs text-text-muted">–</span>
+          <input type="time" value={newEnd} onChange={e => setNewEnd(e.target.value)}
+            className="text-xs text-text-muted bg-transparent border-b border-border/40 pb-1.5 focus:outline-none focus:border-olive w-20" />
+          <button onClick={handleAdd} className="text-xs text-olive hover:text-olive-hover cursor-pointer">add</button>
+          <button onClick={() => setAdding(false)} className="text-xs text-text-muted hover:text-text-muted cursor-pointer">cancel</button>
+        </div>
+      ) : (
+        <Button variant="ghost" size="sm" label="+ add block" onClick={() => setAdding(true)} />
+      )}
     </FadeIn>
   )
 }

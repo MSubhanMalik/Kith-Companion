@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { ReactNode } from 'react'
 
@@ -8,6 +9,15 @@ interface ModalProps {
 }
 
 export function Modal({ visible, onClose, children }: ModalProps) {
+  useEffect(() => {
+    if (!visible) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [visible, onClose])
+
   return (
     <AnimatePresence>
       {visible && (

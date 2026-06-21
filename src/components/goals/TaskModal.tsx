@@ -8,11 +8,12 @@ interface TaskModalProps {
   onClose: () => void
   onToggleDone: () => void
   onRemove: () => void
+  onSave?: (data: { description: string; output: string }) => void
 }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-export function TaskModal({ visible, task, goalColor, onClose, onToggleDone, onRemove }: TaskModalProps) {
+export function TaskModal({ visible, task, goalColor, onClose, onToggleDone, onRemove, onSave }: TaskModalProps) {
   const [desc, setDesc] = useState(task.description || '')
   const [output, setOutput] = useState(task.output || '')
 
@@ -72,7 +73,7 @@ export function TaskModal({ visible, task, goalColor, onClose, onToggleDone, onR
 
       <div className="flex items-center justify-between">
         <button onClick={onRemove} className="text-[0.625rem] text-text-muted/50 hover:text-direction cursor-pointer">remove task</button>
-        <button onClick={onClose} className="text-xs font-medium cursor-pointer px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors" style={{ color: goalColor }}>Save</button>
+        <button onClick={() => { onSave?.({ description: desc, output }); onClose() }} className="text-xs font-medium cursor-pointer px-4 py-2 rounded-lg hover:bg-surface-hover transition-colors" style={{ color: goalColor }}>Save</button>
       </div>
     </Modal>
   )

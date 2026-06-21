@@ -88,7 +88,7 @@ export function LoginScreen({ onLogin, onGoogleLogin, onSwitchToRegister }: Logi
           {error && <p className="text-xs text-direction">{error}</p>}
 
           <div className="mt-2">
-            <Button variant="primary" size="md" label="Sign in" fullWidth />
+            <Button variant="primary" size="md" label="Sign in" fullWidth type="submit" />
           </div>
         </form>
 

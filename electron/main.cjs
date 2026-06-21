@@ -187,6 +187,27 @@ function createWindows() {
     petWindow.webContents.send('message-action', action)
   })
 
+  ipcMain.on('push-nudge', (_, data) => {
+    if (!petWindow || !msgWindow) return
+    const petBounds = petWindow.getBounds()
+    msgWindow.setBounds({
+      x: petBounds.x + PET_W - MSG_W,
+      y: petBounds.y - MSG_H - 8,
+      width: MSG_W,
+      height: MSG_H,
+    })
+    msgWindow.webContents.send('show-message-data', data)
+    msgWindow.showInactive()
+    petWindow.webContents.send('nudge-arrived', data)
+  })
+
+  ipcMain.on('dismiss-nudge', () => {
+    if (!msgWindow || !petWindow) return
+    msgWindow.webContents.send('hide-message-data')
+    setTimeout(() => msgWindow.hide(), 300)
+    petWindow.webContents.send('nudge-dismissed')
+  })
+
   ipcMain.on('open-app', () => {
     if (!appWindow) return
     appWindow.show()

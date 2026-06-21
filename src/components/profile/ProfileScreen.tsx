@@ -22,6 +22,18 @@ export function ProfileScreen() {
     logout()
   }
 
+  async function handleLinkGoogle() {
+    if (!window.appAPI?.googleAuth) return
+    try {
+      const idToken = await window.appAPI.googleAuth()
+      await axiosService.post(endpoints.auth.google, { token: idToken })
+      const res = await axiosService.get(endpoints.auth.me)
+      if (res.data?.data) {
+        useAuthStore.getState().updateUser(res.data.data)
+      }
+    } catch {}
+  }
+
   async function handleDeleteAccount() {
     try {
       await axiosService.delete(endpoints.auth.me)
@@ -76,7 +88,7 @@ export function ProfileScreen() {
             {user?.providers?.includes('GOOGLE') ? (
               <span className="text-sm text-connection">Linked</span>
             ) : (
-              <Button variant="ghost" size="sm" label="Link Google" />
+              <Button variant="ghost" size="sm" label="Link Google" onClick={handleLinkGoogle} />
             )}
           </div>
         </FadeIn>

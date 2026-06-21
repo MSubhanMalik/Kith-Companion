@@ -1,18 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { LifeBlock, WeekSchedule, ScheduledBlock, DayOfWeek } from '../types'
-import { schedulerService } from '../services'
+import { scheduleService } from '../services/ScheduleService'
 import { timeService } from '../services'
-
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
-}
-
-const SEED_LIFE_BLOCKS: LifeBlock[] = [
-  { id: 'lb1', label: 'Work', days: ['mon', 'tue', 'wed', 'thu', 'fri'], time: { start: '09:00', end: '17:00' } },
-  { id: 'lb2', label: 'Gym', days: ['mon', 'tue', 'wed', 'thu', 'fri'], time: { start: '18:00', end: '19:00' } },
-  { id: 'lb3', label: 'Sleep', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], time: { start: '23:00', end: '07:00' } },
-]
 
 interface ScheduleStore {
   lifeBlocks: LifeBlock[]
@@ -20,17 +10,18 @@ interface ScheduleStore {
   weekHistory: WeekSchedule[]
   morningReviewTime: string
   nightReviewTime: string
+  loading: boolean
 
-  addLifeBlock: (block: Omit<LifeBlock, 'id'>) => void
-  updateLifeBlock: (id: string, updates: Partial<Omit<LifeBlock, 'id'>>) => void
-  removeLifeBlock: (id: string) => void
+  fetchLifeBlocks: () => Promise<void>
+  addLifeBlock: (block: Omit<LifeBlock, 'id'>) => Promise<void>
+  updateLifeBlock: (id: string, updates: Partial<Omit<LifeBlock, 'id'>>) => Promise<void>
+  removeLifeBlock: (id: string) => Promise<void>
+
+  fetchWeek: (weekOf: string) => Promise<void>
+  generateWeek: (weekOf: string) => Promise<void>
+  lockWeek: (weekOf: string) => Promise<void>
 
   setCurrentWeek: (week: WeekSchedule) => void
-  lockWeek: () => void
-  updateBlockStatus: (blockId: string, status: ScheduledBlock['status']) => void
-  moveTask: (taskId: string, newDay: DayOfWeek, newTime: string) => void
-  removeTask: (taskId: string) => void
-
   setMorningReviewTime: (time: string) => void
   setNightReviewTime: (time: string) => void
 
@@ -44,67 +35,89 @@ interface ScheduleStore {
 export const useScheduleStore = create<ScheduleStore>()(
   persist(
     (set, get) => ({
-      lifeBlocks: SEED_LIFE_BLOCKS,
+      lifeBlocks: [],
       currentWeek: null,
       weekHistory: [],
       morningReviewTime: '08:00',
       nightReviewTime: '21:00',
+      loading: false,
 
-      addLifeBlock: (block) => {
-        set({ lifeBlocks: [...get().lifeBlocks, { ...block, id: generateId() }] })
+      fetchLifeBlocks: async () => {
+        try {
+          const data = await scheduleService.listLifeBlocks()
+          set({ lifeBlocks: data as LifeBlock[] })
+        } catch {}
       },
 
-      updateLifeBlock: (id, updates) => {
-        set({ lifeBlocks: get().lifeBlocks.map(b => b.id === id ? { ...b, ...updates } : b) })
+      addLifeBlock: async (block) => {
+        try {
+          const created = await scheduleService.createLifeBlock({
+            label: block.label,
+            start_time: block.time.start,
+            end_time: block.time.end,
+            days: block.days,
+          })
+          set({ lifeBlocks: [...get().lifeBlocks, created as LifeBlock] })
+        } catch {}
       },
 
-      removeLifeBlock: (id) => {
-        set({ lifeBlocks: get().lifeBlocks.filter(b => b.id !== id) })
+      updateLifeBlock: async (id, updates) => {
+        const apiData: Record<string, unknown> = {}
+        if (updates.label) apiData.label = updates.label
+        if (updates.time) {
+          apiData.start_time = updates.time.start
+          apiData.end_time = updates.time.end
+        }
+        if (updates.days) apiData.days = updates.days
+
+        try {
+          const updated = await scheduleService.updateLifeBlock(Number(id), apiData)
+          set({ lifeBlocks: get().lifeBlocks.map(b => String(b.id) === String(id) ? updated as LifeBlock : b) })
+        } catch {}
+      },
+
+      removeLifeBlock: async (id) => {
+        try {
+          await scheduleService.removeLifeBlock(Number(id))
+          set({ lifeBlocks: get().lifeBlocks.filter(b => String(b.id) !== String(id)) })
+        } catch {}
+      },
+
+      fetchWeek: async (weekOf) => {
+        set({ loading: true })
+        try {
+          const data = await scheduleService.getWeek(weekOf)
+          if (data) {
+            set({ currentWeek: data as WeekSchedule, loading: false })
+          } else {
+            set({ currentWeek: null, loading: false })
+          }
+        } catch {
+          set({ loading: false })
+        }
+      },
+
+      generateWeek: async (weekOf) => {
+        set({ loading: true })
+        try {
+          const data = await scheduleService.generate(weekOf)
+          set({ currentWeek: data as WeekSchedule, loading: false })
+        } catch {
+          set({ loading: false })
+        }
+      },
+
+      lockWeek: async (weekOf) => {
+        try {
+          const data = await scheduleService.lock(weekOf)
+          set({ currentWeek: data as WeekSchedule })
+        } catch {}
       },
 
       setCurrentWeek: (week) => {
         const { currentWeek, weekHistory } = get()
         const history = currentWeek ? [...weekHistory, currentWeek].slice(-8) : weekHistory
         set({ currentWeek: week, weekHistory: history })
-      },
-
-      lockWeek: () => {
-        const { currentWeek } = get()
-        if (!currentWeek) return
-        set({ currentWeek: { ...currentWeek, lockedAt: new Date().toISOString() } })
-      },
-
-      updateBlockStatus: (blockId, _status) => {
-        const { currentWeek } = get()
-        if (!currentWeek) return
-        set({
-          currentWeek: {
-            ...currentWeek,
-            blocks: schedulerService.rescheduleAfterCompletion(currentWeek.blocks, blockId, []),
-          },
-        })
-      },
-
-      moveTask: (taskId, newDay, newTime) => {
-        const { currentWeek } = get()
-        if (!currentWeek) return
-        set({
-          currentWeek: {
-            ...currentWeek,
-            blocks: schedulerService.moveTask(currentWeek.blocks, taskId, newDay, newTime),
-          },
-        })
-      },
-
-      removeTask: (taskId) => {
-        const { currentWeek } = get()
-        if (!currentWeek) return
-        set({
-          currentWeek: {
-            ...currentWeek,
-            blocks: schedulerService.removeTask(currentWeek.blocks, taskId),
-          },
-        })
       },
 
       setMorningReviewTime: (time) => set({ morningReviewTime: time }),
@@ -146,6 +159,6 @@ export const useScheduleStore = create<ScheduleStore>()(
         return Math.max(0, HOURS_PER_WEEK - blockedMinutes / 60)
       },
     }),
-    { name: 'kith-schedule' }
+    { name: 'kith-schedule', version: 2, migrate: () => ({ lifeBlocks: [], currentWeek: null, weekHistory: [], morningReviewTime: '08:00', nightReviewTime: '21:00', loading: false }) }
   )
 )

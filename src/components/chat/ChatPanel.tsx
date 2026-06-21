@@ -1,11 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Cat } from '../cat/Cat'
+import { chatService } from '../../services/ChatService'
 
 interface Message {
   id: string
   from: 'user' | 'kith'
   text: string
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/^[-*]\s/gm, '• ')
+    .replace(/`(.*?)`/g, '$1')
 }
 
 const SUGGESTIONS = [
@@ -17,35 +27,68 @@ const SUGGESTIONS = [
 interface ChatPanelProps {
   visible: boolean
   onClose: () => void
+  pageContext?: { screen: string; goalId?: number | null }
 }
 
-export function ChatPanel({ visible, onClose }: ChatPanelProps) {
+export function ChatPanel({ visible, onClose, pageContext }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', from: 'kith', text: 'What do you need?' },
   ])
   const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [historyLoaded, setHistoryLoaded] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  function send(text?: string) {
+  useEffect(() => {
+    if (visible && !historyLoaded) {
+      loadHistory()
+    }
+  }, [visible])
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, sending])
+
+  async function loadHistory() {
+    try {
+      const data = await chatService.getHistory() as Array<{ id: number; role: string; content: string }>
+      if (data && data.length > 0) {
+        const mapped: Message[] = data.map(m => ({
+          id: String(m.id),
+          from: m.role === 'user' ? 'user' as const : 'kith' as const,
+          text: m.content,
+        }))
+        setMessages(mapped)
+      }
+      setHistoryLoaded(true)
+    } catch {
+      setHistoryLoaded(true)
+    }
+  }
+
+  async function send(text?: string) {
     const msg = text || input.trim()
-    if (!msg) return
+    if (!msg || sending) return
+
     const userMsg: Message = { id: Date.now().toString(), from: 'user', text: msg }
     setMessages(prev => [...prev, userMsg])
     setInput('')
+    setSending(true)
 
-    setTimeout(() => {
-      const responses: Record<string, string> = {
-        'reschedule': 'Thursday is heavy — 2 deep tasks back to back. I moved "Test payment flow" to Friday morning. Updated your schedule.',
-        'break': 'What\'s the goal? Tell me in one sentence and I\'ll break it into tasks and schedule them.',
-        'focus': 'Startup is behind by 4 hours. Your next slot is at 9:30 PM — I\'d put Stripe checkout there. Freelancing is on track.',
-      }
-      const key = Object.keys(responses).find(k => msg.toLowerCase().includes(k))
-      const reply: Message = {
-        id: (Date.now() + 1).toString(),
+    try {
+      const reply = await chatService.send(msg, pageContext) as { id: number; content: string }
+      const kithMsg: Message = {
+        id: String(reply.id),
         from: 'kith',
-        text: key ? responses[key] : 'Got it. Your startup goal is behind by 4 hours this week. Want me to rebalance the schedule?',
+        text: reply.content,
       }
-      setMessages(prev => [...prev, reply])
-    }, 600)
+      setMessages(prev => [...prev, kithMsg])
+    } catch {
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), from: 'kith', text: 'Something went wrong. Try again.' }])
+    }
+    setSending(false)
   }
 
   return (
@@ -59,8 +102,8 @@ export function ChatPanel({ visible, onClose }: ChatPanelProps) {
           exit={{ x: '100%' }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <div className="flex-1 flex flex-col bg-page border-l border-border/40 px-5 py-4">
-            <div className="flex items-center justify-between mb-4">
+          <div className="flex-1 flex flex-col bg-page border-l border-border/40 px-5 py-4 overflow-hidden">
+            <div className="flex items-center justify-between mb-4 shrink-0">
               <div className="flex items-center gap-2">
                 <Cat state="listening" size={20} />
                 <span className="text-xs text-text-muted">Kith</span>
@@ -68,7 +111,7 @@ export function ChatPanel({ visible, onClose }: ChatPanelProps) {
               <button onClick={onClose} className="text-xs text-text-muted hover:text-text-muted cursor-pointer">✕</button>
             </div>
 
-            <div className="flex-1 overflow-y-auto mb-4">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto mb-4 min-h-0">
               <div className="flex flex-col gap-3">
                 {messages.map((msg) => (
                   <motion.div
@@ -78,7 +121,7 @@ export function ChatPanel({ visible, onClose }: ChatPanelProps) {
                     className={msg.from === 'user' ? 'ml-6' : ''}
                   >
                     {msg.from === 'kith' ? (
-                      <p className="text-sm text-text-primary leading-relaxed">{msg.text}</p>
+                      <p className="text-sm text-text-primary leading-relaxed whitespace-pre-line">{stripMarkdown(msg.text)}</p>
                     ) : (
                       <p className="text-sm text-text-secondary leading-relaxed rounded-xl rounded-br-sm px-3 py-2" style={{ backgroundColor: 'var(--color-surface-hover)' }}>
                         {msg.text}
@@ -86,6 +129,15 @@ export function ChatPanel({ visible, onClose }: ChatPanelProps) {
                     )}
                   </motion.div>
                 ))}
+                {sending && (
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map(i => (
+                      <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-olive/40"
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
+                    ))}
+                  </div>
+                )}
               </div>
 
               {messages.length <= 1 && (

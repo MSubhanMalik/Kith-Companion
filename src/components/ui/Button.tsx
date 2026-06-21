@@ -6,6 +6,8 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   fullWidth?: boolean
+  type?: 'button' | 'submit' | 'reset'
+  disabled?: boolean
 }
 
 const variantClasses = {
@@ -21,14 +23,16 @@ const sizeClasses = {
   lg: 'px-10 py-4 text-base rounded-xl',
 }
 
-export function Button({ label, onClick, variant = 'primary', size = 'md', fullWidth = false }: ButtonProps) {
+export function Button({ label, onClick, variant = 'primary', size = 'md', fullWidth = false, type = 'button', disabled = false }: ButtonProps) {
   return (
     <motion.button
-      whileHover={{ scale: 1.015 }}
-      whileTap={{ scale: 0.97 }}
+      type={type}
+      disabled={disabled}
+      whileHover={disabled ? {} : { scale: 1.015 }}
+      whileTap={disabled ? {} : { scale: 0.97 }}
       transition={{ duration: 0.1 }}
       onClick={onClick}
-      className={`font-semibold cursor-pointer transition-colors duration-150 ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''}`}
+      className={`font-semibold cursor-pointer transition-colors duration-150 ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
     >
       {label}
     </motion.button>

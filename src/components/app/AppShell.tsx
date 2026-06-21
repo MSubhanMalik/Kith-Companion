@@ -4,15 +4,27 @@ import { NavBar } from './NavBar'
 import { ChatPanel } from '../chat/ChatPanel'
 import { Cat } from '../cat/Cat'
 import { motion } from 'framer-motion'
+import { useCatStore } from '../../stores/cat'
+import { useCatIntelligence } from '../../hooks/useCatIntelligence'
+import { useNudgeListener } from '../../hooks/useNudgeListener'
 
 interface AppShellProps {
   children: ReactNode
   currentRoute: string
+  selectedGoalId?: number | null
   onNavigate: (route: string) => void
 }
 
-export function AppShell({ children, currentRoute, onNavigate }: AppShellProps) {
+export function AppShell({ children, currentRoute, selectedGoalId, onNavigate }: AppShellProps) {
   const [chatOpen, setChatOpen] = useState(false)
+  const catState = useCatStore(s => s.state)
+  useCatIntelligence()
+  useNudgeListener()
+
+  const pageContext = {
+    screen: currentRoute,
+    goalId: currentRoute === 'goal' ? selectedGoalId : undefined,
+  }
 
   return (
     <div className="min-h-screen bg-page flex flex-col">
@@ -28,10 +40,10 @@ export function AppShell({ children, currentRoute, onNavigate }: AppShellProps) 
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <Cat state={chatOpen ? 'listening' : 'idle'} size={28} />
+        <Cat state={chatOpen ? 'listening' : catState} size={28} />
       </motion.button>
 
-      <ChatPanel visible={chatOpen} onClose={() => setChatOpen(false)} />
+      <ChatPanel visible={chatOpen} onClose={() => setChatOpen(false)} pageContext={pageContext} />
     </div>
   )
 }
