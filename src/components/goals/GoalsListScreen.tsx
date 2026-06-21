@@ -105,7 +105,7 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
                   <span className="text-xs text-text-muted/50">{taskCounts[goal.id]?.done ?? 0}/{taskCounts[goal.id]?.total ?? 0}</span>
                   <span className="text-xs text-text-muted/50">{goal.weeklyHours}h</span>
                   <div className="flex items-center justify-end gap-2">
-                    <span className="text-xs text-text-muted">{goal.currentStatus || 'new'}</span>
+                    <span className="text-xs text-text-muted truncate max-w-[5rem]">{(goal.currentStatus && goal.currentStatus.length > 20) ? 'active' : (goal.currentStatus || 'new')}</span>
                     {editingId === goal.id && (
                       <button onClick={() => removeGoal(goal.id)} className="text-[0.625rem] text-text-muted/50 hover:text-direction cursor-pointer">✕</button>
                     )}
@@ -163,7 +163,7 @@ export function GoalsListScreen({ onGoalClick }: GoalsListScreenProps) {
                             </div>
                             <span className="text-xs text-text-muted/50">{taskCounts[goal.id]?.done ?? 0}/{taskCounts[goal.id]?.total ?? 0}</span>
                             <span className="text-xs text-text-muted/50">{goal.weeklyHours}h</span>
-                            <span className="text-xs text-right text-text-muted">{goal.currentStatus || 'new'}</span>
+                            <span className="text-xs text-right text-text-muted truncate max-w-[5rem]">{(goal.currentStatus && goal.currentStatus.length > 20) ? 'active' : (goal.currentStatus || 'new')}</span>
                           </div>
                         </FadeIn>
                       )

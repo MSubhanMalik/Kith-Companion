@@ -145,13 +145,15 @@ interface ExportTask {
   output: string
   day: string
   done: boolean
+  weekNumber?: number | null
+  estimatedMinutes?: number
 }
 
 export function exportGoalSchedule(goalName: string, tasks?: ExportTask[], goalColor?: string) {
   const wb = XLSX.utils.book_new()
   const ws: XLSX.WorkSheet = {}
 
-  const COLS = 5
+  const COLS = 6
   const COLOR = goalColor?.replace('#', '') || 'B08455'
 
   setMergedTitle(ws, 0, `KITH — ${goalName.toUpperCase()}`, COLS, {
@@ -161,33 +163,71 @@ export function exportGoalSchedule(goalName: string, tasks?: ExportTask[], goalC
   })
 
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  setMergedTitle(ws, 1, `Generated ${dateStr}  ·  ${tasks?.length || 0} Tasks`, COLS, {
+  const weekCount = new Set((tasks || []).map(t => t.weekNumber || 1)).size
+  setMergedTitle(ws, 1, `Generated ${dateStr}  ·  ${weekCount} Weeks  ·  ${tasks?.length || 0} Tasks`, COLS, {
     font: { sz: 9, color: { rgb: MUTED } },
     fill: { fgColor: { rgb: CREAM } },
     alignment: { horizontal: 'left' },
   })
 
-  const headers = ['#', 'Day', 'Task', 'Details', 'Output']
-  headers.forEach((h, c) => setCell(ws, 3, c, h, HEADER_STYLE))
-
-  const taskList = tasks || []
-  taskList.forEach((task, ri) => {
-    const r = 4 + ri
-    const row: (string | number)[] = [ri + 1, task.day || '', task.text, task.description || '', task.output || '']
-
-    row.forEach((val, c) => {
-      let style = dataStyle(ri)
-      if (c === 0) style = { ...style, font: { sz: 10, color: { rgb: COLOR }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' } }
-      if (c === 2) style = { ...style, font: { sz: 10, color: { rgb: DARK }, bold: true } }
-      if (c === 4) style = { ...style, font: { sz: 10, color: { rgb: COLOR } } }
-      setCell(ws, r, c, val, style)
-    })
+  const taskList = [...(tasks || [])].sort((a, b) => {
+    const wDiff = (a.weekNumber || 1) - (b.weekNumber || 1)
+    if (wDiff !== 0) return wDiff
+    const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    return dayOrder.indexOf(a.day || '') - dayOrder.indexOf(b.day || '')
   })
 
-  const range = { s: { r: 0, c: 0 }, e: { r: 4 + taskList.length - 1, c: COLS - 1 } }
+  let row = 3
+  let lastWeek = 0
+
+  for (const task of taskList) {
+    const wk = task.weekNumber || 1
+
+    if (wk !== lastWeek) {
+      lastWeek = wk
+      const doneCount = taskList.filter(t => (t.weekNumber || 1) === wk && t.done).length
+      const totalCount = taskList.filter(t => (t.weekNumber || 1) === wk).length
+
+      setMergedTitle(ws, row, `WEEK ${wk}    ${doneCount}/${totalCount} done`, COLS, {
+        font: { bold: true, sz: 12, color: { rgb: WHITE } },
+        fill: { fgColor: { rgb: COLOR } },
+        alignment: { horizontal: 'left', vertical: 'center' },
+      })
+      row++
+
+      const headers = ['Day', 'Task', 'Details', 'Output', 'Time', 'Status']
+      headers.forEach((h, c) => setCell(ws, row, c, h, HEADER_STYLE))
+      row++
+    }
+
+    const rowData = [
+      task.day || '',
+      task.text,
+      task.description || '',
+      task.output || '',
+      task.estimatedMinutes ? `${task.estimatedMinutes}m` : '',
+      task.done ? 'Done' : '—',
+    ]
+
+    const ri = row - 5
+    rowData.forEach((val, c) => {
+      let style = dataStyle(ri)
+      if (c === 0) style = { ...style, font: { ...style.font, bold: true } }
+      if (c === 1) style = { ...style, font: { sz: 10, color: { rgb: DARK }, bold: true } }
+      if (c === 3) style = { ...style, font: { sz: 10, color: { rgb: COLOR } } }
+      if (c === 5) {
+        if (val === 'Done') style = { ...style, font: { sz: 10, color: { rgb: GREEN }, bold: true } }
+        style = { ...style, alignment: { horizontal: 'center', vertical: 'center' } }
+      }
+      setCell(ws, row, c, val, style)
+    })
+    row++
+  }
+
+  const range = { s: { r: 0, c: 0 }, e: { r: row - 1, c: COLS - 1 } }
   ws['!ref'] = XLSX.utils.encode_range(range)
-  ws['!cols'] = [{ wch: 5 }, { wch: 7 }, { wch: 30 }, { wch: 36 }, { wch: 22 }]
-  ws['!rows'] = [{ hpt: 32 }, { hpt: 18 }, { hpt: 8 }, { hpt: 22 }]
+  ws['!cols'] = [{ wch: 6 }, { wch: 30 }, { wch: 36 }, { wch: 22 }, { wch: 7 }, { wch: 8 }]
+  ws['!rows'] = [{ hpt: 32 }, { hpt: 18 }]
 
   const safeName = goalName.replace(/[^a-zA-Z0-9 ]/g, '').slice(0, 25)
   XLSX.utils.book_append_sheet(wb, ws, safeName || 'Goal')

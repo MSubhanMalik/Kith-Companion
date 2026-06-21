@@ -50,6 +50,10 @@ export const goalService = {
     await axiosService.delete(endpoints.tasks.delete(goalId, taskId))
   },
 
+  async reorderTasks(goalId: number, orderedIds: number[]) {
+    await axiosService.post(endpoints.tasks.reorder(goalId), { ordered_ids: orderedIds })
+  },
+
   async listNotes(goalId: number) {
     const res = await axiosService.get<ApiResponse<unknown[]>>(endpoints.notes.list(goalId))
     return res.data
