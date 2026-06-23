@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Cat } from '../cat/Cat'
 import { chatService } from '../../services/ChatService'
+import { LoadingWords } from '../ui/LoadingWords'
 
 interface Message {
   id: string
@@ -27,17 +28,21 @@ const SUGGESTIONS = [
 interface ChatPanelProps {
   visible: boolean
   onClose: () => void
+  onMessageComplete?: () => void
   pageContext?: { screen: string; goalId?: number | null }
 }
 
-export function ChatPanel({ visible, onClose, pageContext }: ChatPanelProps) {
+export function ChatPanel({ visible, onClose, onMessageComplete, pageContext }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', from: 'kith', text: 'What do you need?' },
   ])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null)
+  const [dragOver, setDragOver] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (visible && !historyLoaded) {
@@ -68,23 +73,63 @@ export function ChatPanel({ visible, onClose, pageContext }: ChatPanelProps) {
     }
   }
 
+  async function handleFileSelect(file: File) {
+    try {
+      if (file.name.match(/\.(xlsx|xls)$/i)) {
+        const XLSX = await import('xlsx-js-style')
+        const buffer = await file.arrayBuffer()
+        const wb = XLSX.read(buffer, { type: 'array' })
+        const lines: string[] = []
+        for (const sheetName of wb.SheetNames) {
+          const ws = wb.Sheets[sheetName]
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as string[][]
+          lines.push(`Sheet: ${sheetName}`)
+          for (const row of rows.slice(0, 50)) {
+            lines.push(row.filter(Boolean).join(' | '))
+          }
+          if (rows.length > 50) lines.push(`... (${rows.length - 50} more rows)`)
+          lines.push('')
+        }
+        setAttachedFile({ name: file.name, content: lines.join('\n').slice(0, 8000) })
+      } else {
+        const text = await file.text()
+        setAttachedFile({ name: file.name, content: text.slice(0, 8000) })
+      }
+    } catch {}
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileSelect(file)
+  }
+
   async function send(text?: string) {
     const msg = text || input.trim()
-    if (!msg || sending) return
+    if ((!msg && !attachedFile) || sending) return
 
-    const userMsg: Message = { id: Date.now().toString(), from: 'user', text: msg }
+    let fullMessage = msg
+    if (attachedFile) {
+      fullMessage = `${msg ? msg + '\n\n' : ''}[File: ${attachedFile.name}]\n${attachedFile.content}`
+    }
+
+    const displayText = msg || `Attached: ${attachedFile?.name}`
+    const userMsg: Message = { id: Date.now().toString(), from: 'user', text: displayText }
     setMessages(prev => [...prev, userMsg])
     setInput('')
+    setAttachedFile(null)
     setSending(true)
 
     try {
-      const reply = await chatService.send(msg, pageContext) as { id: number; content: string }
+      const reply = await chatService.send(fullMessage, pageContext) as { id: number; content: string }
       const kithMsg: Message = {
         id: String(reply.id),
         from: 'kith',
         text: reply.content,
       }
       setMessages(prev => [...prev, kithMsg])
+      onMessageComplete?.()
     } catch {
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), from: 'kith', text: 'Something went wrong. Try again.' }])
     }
@@ -129,15 +174,7 @@ export function ChatPanel({ visible, onClose, pageContext }: ChatPanelProps) {
                     )}
                   </motion.div>
                 ))}
-                {sending && (
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map(i => (
-                      <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-olive/40"
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
-                    ))}
-                  </div>
-                )}
+                {sending && <LoadingWords />}
               </div>
 
               {messages.length <= 1 && (
@@ -152,15 +189,38 @@ export function ChatPanel({ visible, onClose, pageContext }: ChatPanelProps) {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && send()}
-                placeholder="Ask Kith..."
-                className="flex-1 text-sm text-text-primary bg-transparent border-b border-border/40 pb-2 focus:outline-none focus:border-olive placeholder:text-text-muted/50"
-              />
-              <button onClick={() => send()} className="text-xs font-medium text-olive hover:text-olive-hover cursor-pointer">→</button>
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              className={`transition-colors rounded-lg ${dragOver ? 'bg-olive/5 ring-1 ring-olive/20' : ''}`}
+            >
+              {attachedFile && (
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="text-[0.625rem] text-olive bg-olive/10 px-2 py-0.5 rounded">{attachedFile.name}</span>
+                  <button onClick={() => setAttachedFile(null)} className="text-[0.625rem] text-text-muted hover:text-direction cursor-pointer">✕</button>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <button onClick={() => fileInputRef.current?.click()} className="text-text-muted/40 hover:text-olive cursor-pointer shrink-0" title="Attach file">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 8.5l-5.5 5.5a3.5 3.5 0 01-5-5L9 3.5a2 2 0 013 3L6.5 12a.5.5 0 01-1-1L11 5.5a1 1 0 00-1.5-1.5L4 9.5a2.5 2.5 0 003.5 3.5L13 7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".txt,.md,.csv,.json,.xlsx,.xls,.pdf,.html"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = '' }}
+                />
+                <input
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && send()}
+                  placeholder={attachedFile ? 'Add a message or send...' : 'Ask Kith...'}
+                  className="flex-1 text-sm text-text-primary bg-transparent border-b border-border/40 pb-2 focus:outline-none focus:border-olive placeholder:text-text-muted/50"
+                />
+                <button onClick={() => send()} className="text-xs font-medium text-olive hover:text-olive-hover cursor-pointer">→</button>
+              </div>
             </div>
           </div>
         </motion.div>

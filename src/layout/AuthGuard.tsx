@@ -51,22 +51,56 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   async function handleGoogleLogin() {
-    if (!window.appAPI?.googleAuth) {
-      addToast('Google login only works in the desktop app', 'info')
+    if (window.appAPI?.googleAuth) {
+      try {
+        const idToken = await window.appAPI.googleAuth()
+        const result = await authService.googleAuth(idToken)
+        axiosService.setAccessToken(result.access_token)
+        setAuth(result.user, result.access_token)
+      } catch (err: unknown) {
+        const msg = (err as { message?: string })?.message || 'Google login failed'
+        if (msg !== 'Auth window closed') {
+          addToast(msg, 'error')
+        }
+      }
       return
     }
 
-    try {
-      const idToken = await window.appAPI.googleAuth()
-      const result = await authService.googleAuth(idToken)
-      axiosService.setAccessToken(result.access_token)
-      setAuth(result.user, result.access_token)
-    } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message || 'Google login failed'
-      if (msg !== 'Auth window closed') {
-        addToast(msg, 'error')
-      }
+    const clientId = '691765170991-r2ifupsq46pmfof1586794a8epbbbdgr.apps.googleusercontent.com'
+    const redirectUri = window.location.origin
+    const nonce = Date.now().toString()
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid+email+profile&nonce=${nonce}`
+
+    const popup = window.open(authUrl, 'google-auth', 'width=500,height=700')
+    if (!popup) {
+      addToast('Popup blocked — allow popups for this site', 'error')
+      return
     }
+
+    const interval = setInterval(() => {
+      try {
+        if (popup.closed) {
+          clearInterval(interval)
+          return
+        }
+        const url = popup.location.href
+        if (url.startsWith(redirectUri)) {
+          clearInterval(interval)
+          const hash = url.split('#')[1]
+          if (hash) {
+            const params = new URLSearchParams(hash)
+            const idToken = params.get('id_token')
+            if (idToken) {
+              popup.close()
+              authService.googleAuth(idToken).then(result => {
+                axiosService.setAccessToken(result.access_token)
+                setAuth(result.user, result.access_token)
+              }).catch(() => addToast('Google login failed', 'error'))
+            }
+          }
+        }
+      } catch {}
+    }, 500)
   }
 
   if (!isLoggedIn) {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, createContext, useContext, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { NavBar } from './NavBar'
 import { ChatPanel } from '../chat/ChatPanel'
@@ -7,6 +7,11 @@ import { motion } from 'framer-motion'
 import { useCatStore } from '../../stores/cat'
 import { useCatIntelligence } from '../../hooks/useCatIntelligence'
 import { useNudgeListener } from '../../hooks/useNudgeListener'
+
+const ChatOpenContext = createContext(false)
+const ChatRefreshContext = createContext(0)
+export function useChatOpen() { return useContext(ChatOpenContext) }
+export function useChatRefresh() { return useContext(ChatRefreshContext) }
 
 interface AppShellProps {
   children: ReactNode
@@ -17,6 +22,8 @@ interface AppShellProps {
 
 export function AppShell({ children, currentRoute, selectedGoalId, onNavigate }: AppShellProps) {
   const [chatOpen, setChatOpen] = useState(false)
+  const [chatRefresh, setChatRefresh] = useState(0)
+  const bumpChatRefresh = useCallback(() => setChatRefresh(c => c + 1), [])
   const catState = useCatStore(s => s.state)
   useCatIntelligence()
   useNudgeListener()
@@ -27,6 +34,8 @@ export function AppShell({ children, currentRoute, selectedGoalId, onNavigate }:
   }
 
   return (
+    <ChatOpenContext.Provider value={chatOpen}>
+    <ChatRefreshContext.Provider value={chatRefresh}>
     <div className="min-h-screen bg-page flex flex-col">
       <div className="h-16 shrink-0" />
       <NavBar currentRoute={currentRoute} onNavigate={onNavigate} />
@@ -43,7 +52,9 @@ export function AppShell({ children, currentRoute, selectedGoalId, onNavigate }:
         <Cat state={chatOpen ? 'listening' : catState} size={28} />
       </motion.button>
 
-      <ChatPanel visible={chatOpen} onClose={() => setChatOpen(false)} pageContext={pageContext} />
+      <ChatPanel visible={chatOpen} onClose={() => setChatOpen(false)} onMessageComplete={bumpChatRefresh} pageContext={pageContext} />
     </div>
+    </ChatRefreshContext.Provider>
+    </ChatOpenContext.Provider>
   )
 }

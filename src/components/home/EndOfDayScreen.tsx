@@ -75,6 +75,7 @@ export function EndOfDayScreen() {
         await axiosService.patch(endpoints.schedule.weekSummary(weekOf), { summary_line: weekSummary.trim() })
       }
       await todayService.closeDay()
+      window.location.hash = '#app/home'
     } catch {}
     setClosing(false)
   }

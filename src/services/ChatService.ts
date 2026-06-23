@@ -27,4 +27,5 @@ export const chatService = {
     const res = await axiosService.get<ApiResponse<ChatMessage[]>>(endpoints.chat.history)
     return res.data
   },
+
 }

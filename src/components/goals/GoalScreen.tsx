@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { DndContext, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core'
 import { PageTransition } from '../ui/PageTransition'
 import { ScreenHeader } from '../ui/ScreenHeader'
 import { FadeIn } from '../ui/FadeIn'
@@ -11,6 +12,7 @@ import { getGoalColor } from '../../lib/colors'
 import { goalService } from '../../services/GoalService'
 import { scheduleService } from '../../services/ScheduleService'
 import { Cat } from '../cat/Cat'
+import { useChatOpen, useChatRefresh } from '../app/AppShell'
 
 type ViewMode = 'plan' | 'tasks'
 
@@ -61,10 +63,17 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
   const [newNote, setNewNote] = useState('')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [showPanel, setShowPanel] = useState(true)
+  const chatOpen = useChatOpen()
+  const chatRefresh = useChatRefresh()
+  const panelVisible = showPanel && !chatOpen
 
   useEffect(() => {
     if (numericGoalId) loadData()
   }, [numericGoalId])
+
+  useEffect(() => {
+    if (numericGoalId) loadData()
+  }, [chatRefresh])
 
   async function loadData() {
     setLoading(true)
@@ -146,6 +155,13 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
         day_of_week: selectedTask.day,
         scheduled_time: selectedTask.time || undefined,
       })
+    } catch {}
+  }
+
+  async function handleMoveTask(taskId: string, newDay: string) {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, day: newDay } : t))
+    try {
+      await goalService.updateTask(numericGoalId, Number(taskId), { day_of_week: newDay })
     } catch {}
   }
 
@@ -242,10 +258,10 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
               <motion.div key="plan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <div className="flex gap-6">
                   <div className="flex-1 min-w-0">
-                    <WeekPlanGrid tasks={tasks} goalColor={goalColor} selectedTask={selectedTask} onSelectTask={setSelectedTask} onReorderAll={handleReorderTasks} />
+                    <WeekPlanGrid tasks={tasks} goalColor={goalColor} selectedTask={selectedTask} onSelectTask={setSelectedTask} onReorderAll={handleReorderTasks} onMoveTask={handleMoveTask} goalCreatedAt={goal?.createdAt} goalId={numericGoalId} />
                   </div>
 
-                  {showPanel && <SidePanel selectedTask={selectedTask} goalColor={goalColor} notes={notes} newNote={newNote} onNewNoteChange={setNewNote} onAddNote={addNote} onUpdate={updateSelected} onClose={() => { saveSelectedTask(); setSelectedTask(null) }} onRemove={() => selectedTask && removeTask(selectedTask.id)} onToggleDone={() => selectedTask && toggleDone(selectedTask.id)} />}
+                  {panelVisible && <SidePanel selectedTask={selectedTask} goalColor={goalColor} notes={notes} newNote={newNote} onNewNoteChange={setNewNote} onAddNote={addNote} onUpdate={updateSelected} onClose={() => { saveSelectedTask(); setSelectedTask(null) }} onRemove={() => selectedTask && removeTask(selectedTask.id)} onToggleDone={() => selectedTask && toggleDone(selectedTask.id)} />}
                 </div>
               </motion.div>
             ) : (
@@ -299,7 +315,7 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
                     </div>
                   </div>
 
-                  {showPanel && <SidePanel selectedTask={selectedTask} goalColor={goalColor} notes={notes} newNote={newNote} onNewNoteChange={setNewNote} onAddNote={addNote} onUpdate={updateSelected} onClose={() => { saveSelectedTask(); setSelectedTask(null) }} onRemove={() => selectedTask && removeTask(selectedTask.id)} onToggleDone={() => selectedTask && toggleDone(selectedTask.id)} />}
+                  {panelVisible && <SidePanel selectedTask={selectedTask} goalColor={goalColor} notes={notes} newNote={newNote} onNewNoteChange={setNewNote} onAddNote={addNote} onUpdate={updateSelected} onClose={() => { saveSelectedTask(); setSelectedTask(null) }} onRemove={() => selectedTask && removeTask(selectedTask.id)} onToggleDone={() => selectedTask && toggleDone(selectedTask.id)} />}
                 </div>
               </motion.div>
             )}
@@ -359,9 +375,9 @@ function GoalHeader({ goal, goalColor, goalLabel, done, total }: {
         <FadeIn y={4} className="ml-5 mt-3 flex flex-col gap-3">
           <div>
             <p className="text-[0.5625rem] text-text-muted tracking-widest uppercase mb-1">Description for AI</p>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2}
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={5}
               placeholder="Describe what you want to achieve, context, constraints..."
-              className="w-full text-xs text-text-secondary bg-transparent border-b border-border/40 pb-1.5 focus:outline-none focus:border-olive resize-none placeholder:text-text-muted/50" />
+              className="w-full text-xs text-text-secondary bg-transparent border-b border-border/40 pb-1.5 focus:outline-none focus:border-olive resize-vertical min-h-[5rem] placeholder:text-text-muted/50" />
           </div>
           <div className="flex items-center gap-4">
             <div>
@@ -402,37 +418,75 @@ function formatTime12(t: string): string {
   return m === 0 ? `${hour} ${suffix}` : `${hour}:${String(m).padStart(2, '0')} ${suffix}`
 }
 
-function getWeekDates(): Array<{ day: string; date: number; fullDate: string }> {
-  const today = new Date()
-  const dayOfWeek = today.getDay()
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1))
-
-  return DAYS.map((day, i) => {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    return { day, date: d.getDate(), fullDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
-  })
-}
-
-function WeekPlanGrid({ tasks, goalColor, selectedTask, onSelectTask, onReorderAll }: {
-  tasks: Task[]; goalColor: string; selectedTask: Task | null; onSelectTask: (t: Task) => void; onReorderAll: (tasks: Task[]) => void
+function WeekPlanGrid({ tasks, goalColor, selectedTask, onSelectTask, onReorderAll, onMoveTask, goalCreatedAt, goalId }: {
+  tasks: Task[]; goalColor: string; selectedTask: Task | null; onSelectTask: (t: Task) => void; onReorderAll: (tasks: Task[]) => void; onMoveTask: (taskId: string, newDay: string) => void; goalCreatedAt?: string; goalId: number
 }) {
-  const weekDates = getWeekDates()
   const today = new Date()
-  const todayDate = today.getDate().toString()
+  const todayStr = today.toDateString()
+
+  const [scheduleBlocks, setScheduleBlocks] = useState<Array<{ day: string; label: string; time: { start: string; end: string }; status: string; taskId: number | null }>>([])
+
+  function getGoalStartMonday(): Date {
+    const created = goalCreatedAt ? new Date(goalCreatedAt) : today
+    const day = created.getDay()
+    const diff = created.getDate() - day + (day === 0 ? -6 : 1)
+    const monday = new Date(created)
+    monday.setDate(diff)
+    monday.setHours(0, 0, 0, 0)
+    return monday
+  }
+
+  function getWeekMonday(weekNum: number): Date {
+    const start = getGoalStartMonday()
+    const d = new Date(start)
+    d.setDate(start.getDate() + (weekNum - 1) * 7)
+    return d
+  }
+
+  function formatWeekOf(d: Date): string {
+    return d.toISOString().split('T')[0]
+  }
+
+  function formatWeekRange(monday: Date): string {
+    const sun = new Date(monday)
+    sun.setDate(monday.getDate() + 6)
+    const mStr = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const sStr = sun.toLocaleDateString('en-US', { day: 'numeric' })
+    return `${mStr} – ${sStr}`
+  }
+
+  function getWeekDatesForWeek(weekNum: number) {
+    const monday = getWeekMonday(weekNum)
+    return DAYS.map((day, i) => {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      return { day, date: d.getDate(), fullDate: d }
+    })
+  }
 
   const weekNumbers = [...new Set(tasks.map(t => t.weekNumber || 1))].sort((a, b) => a - b)
   const [activeWeek, setActiveWeek] = useState(weekNumbers[0] || 1)
 
+  useEffect(() => {
+    const monday = getWeekMonday(activeWeek)
+    scheduleService.getWeek(formatWeekOf(monday), goalId).then(data => {
+      const d = data as { blocks: typeof scheduleBlocks } | null
+      setScheduleBlocks(d?.blocks || [])
+    }).catch(() => setScheduleBlocks([]))
+  }, [activeWeek, goalId])
+
   const weekTasks = tasks.filter(t => (t.weekNumber || 1) === activeWeek)
-  const completedThisWeek = weekTasks.filter(t => t.done).length
+  const weekDates = getWeekDatesForWeek(activeWeek)
 
   const tasksByDay: Record<string, Task[]> = {}
   for (const t of weekTasks) {
     const d = t.day || ''
     if (d) {
       if (!tasksByDay[d]) tasksByDay[d] = []
+      const block = scheduleBlocks.find(b => b.taskId === Number(t.id))
+      if (block && block.time?.start && !t.time) {
+        t.time = block.time.start
+      }
       tasksByDay[d].push(t)
     }
   }
@@ -441,66 +495,59 @@ function WeekPlanGrid({ tasks, goalColor, selectedTask, onSelectTask, onReorderA
 
   return (
     <div>
-      {weekNumbers.length > 1 && (
-        <div className="flex items-center gap-2 mb-6">
-          {weekNumbers.map(wn => {
-            const wTasks = tasks.filter(t => (t.weekNumber || 1) === wn)
-            const wDone = wTasks.filter(t => t.done).length
-            const allDone = wDone === wTasks.length && wTasks.length > 0
-            return (
-              <button
-                key={wn}
-                onClick={() => setActiveWeek(wn)}
-                className={`text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${activeWeek === wn ? 'font-semibold' : 'text-text-muted hover:text-text-secondary'} ${allDone ? 'opacity-40' : ''}`}
-                style={activeWeek === wn ? { color: goalColor, backgroundColor: `${goalColor}10` } : {}}
-              >
-                Week {wn}
-                <span className="text-[0.5rem] ml-1 opacity-60">{wDone}/{wTasks.length}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      <div className="grid grid-cols-7 gap-4">
-        {weekDates.map((col, di) => {
-          const dayTasks = (tasksByDay[col.day] || []).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-          const isToday = col.date.toString() === todayDate
-
-          function handleDayReorder(reordered: Task[]) {
-            const otherTasks = tasks.filter(t => t.day !== col.day || (t.weekNumber || 1) !== activeWeek)
-            onReorderAll([...otherTasks, ...reordered])
-          }
-
+      <div className="flex items-center gap-2 mb-6">
+        {weekNumbers.map(wn => {
+          const wTasks = tasks.filter(t => (t.weekNumber || 1) === wn)
+          const wDone = wTasks.filter(t => t.done).length
+          const allDone = wDone === wTasks.length && wTasks.length > 0
+          const range = formatWeekRange(getWeekMonday(wn))
           return (
-            <div key={col.day}>
-              <p className={`text-xs font-semibold mb-1 ${isToday ? 'text-olive' : 'text-text-muted'}`}>{col.day}</p>
-              <p className={`text-[0.625rem] mb-4 ${isToday ? 'text-olive/50' : 'text-text-muted/50'}`}>{col.date}</p>
-              {dayTasks.length === 0 ? (
-                <p className="text-[0.625rem] text-text-muted/50">—</p>
-              ) : (
-                <Reorder.Group axis="y" values={dayTasks} onReorder={handleDayReorder} className="flex flex-col gap-4" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {dayTasks.map((task) => (
-                    <Reorder.Item key={task.id} value={task} className="list-none">
-                      <div
-                        className={`cursor-grab active:cursor-grabbing transition-opacity ${task.done ? 'opacity-30' : ''} ${selectedTask?.id === task.id ? 'opacity-100' : 'hover:opacity-80'}`}
-                        onClick={() => onSelectTask(task)}
-                      >
-                        <p className={`text-[0.6875rem] leading-snug ${task.done ? 'line-through' : ''}`} style={{ color: goalColor }}>
-                          {task.text}
-                        </p>
-                        <p className="text-[0.5625rem] text-text-muted/50 mt-0.5">
-                          {task.time ? formatTime12(task.time) : ''}{task.time && task.estimatedMinutes > 0 ? ' · ' : ''}{task.estimatedMinutes > 0 ? `${task.estimatedMinutes}min` : ''}
-                        </p>
-                      </div>
-                    </Reorder.Item>
-                  ))}
-                </Reorder.Group>
-              )}
-            </div>
+            <button
+              key={wn}
+              onClick={() => setActiveWeek(wn)}
+              className={`text-xs px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${activeWeek === wn ? 'font-semibold' : 'text-text-muted hover:text-text-secondary'} ${allDone ? 'opacity-40' : ''}`}
+              style={activeWeek === wn ? { color: goalColor, backgroundColor: `${goalColor}10` } : {}}
+            >
+              {range}
+              <span className="text-[0.5rem] ml-1 opacity-60">{wDone}/{wTasks.length}</span>
+            </button>
           )
         })}
       </div>
+
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragEnd={(event) => {
+          const { active, over } = event
+          if (!over) return
+          const taskId = active.id as string
+          const targetDay = over.id as string
+          if (!DAYS.includes(targetDay)) return
+          const task = weekTasks.find(t => t.id === taskId)
+          if (!task || task.day === targetDay) return
+          onMoveTask(taskId, targetDay)
+        }}
+      >
+        <div className="grid grid-cols-7 gap-4">
+          {weekDates.map((col) => {
+            const dayTasks = (tasksByDay[col.day] || []).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+            const isToday = col.fullDate.toDateString() === todayStr
+
+            return (
+              <DayColumn
+                key={col.day}
+                day={col.day}
+                date={col.date}
+                isToday={isToday}
+                tasks={dayTasks}
+                goalColor={goalColor}
+                selectedTask={selectedTask}
+                onSelectTask={onSelectTask}
+              />
+            )
+          })}
+        </div>
+      </DndContext>
 
       {unassigned.length > 0 && (
         <div className="mt-8">
@@ -515,6 +562,51 @@ function WeekPlanGrid({ tasks, goalColor, selectedTask, onSelectTask, onReorderA
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function DayColumn({ day, date, isToday, tasks: dayTasks, goalColor, selectedTask, onSelectTask }: {
+  day: string; date: number; isToday: boolean; tasks: Task[]; goalColor: string; selectedTask: Task | null; onSelectTask: (t: Task) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: day })
+
+  return (
+    <div ref={setNodeRef} className={`min-h-[4rem] rounded-lg transition-colors ${isOver ? 'bg-olive/5' : ''}`}>
+      <p className={`text-xs font-semibold mb-1 ${isToday ? 'text-olive' : 'text-text-muted'}`}>{day}</p>
+      <p className={`text-[0.625rem] mb-4 ${isToday ? 'text-olive/50' : 'text-text-muted/50'}`}>{date}</p>
+      <div className="flex flex-col gap-4">
+        {dayTasks.length === 0 && <p className="text-[0.625rem] text-text-muted/50">—</p>}
+        {dayTasks.map((task) => (
+          <DraggableTask key={task.id} task={task} goalColor={goalColor} selectedTask={selectedTask} onSelectTask={onSelectTask} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DraggableTask({ task, goalColor, selectedTask, onSelectTask }: {
+  task: Task; goalColor: string; selectedTask: Task | null; onSelectTask: (t: Task) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
+
+  const style = transform ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 50, opacity: isDragging ? 0.7 : 1 } : undefined
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`cursor-grab active:cursor-grabbing transition-opacity ${task.done ? 'opacity-30' : ''} ${selectedTask?.id === task.id ? 'opacity-100' : 'hover:opacity-80'}`}
+      onClick={() => onSelectTask(task)}
+    >
+      <p className={`text-[0.6875rem] leading-snug ${task.done ? 'line-through' : ''}`} style={{ color: goalColor }}>
+        {task.text}
+      </p>
+      <p className="text-[0.5625rem] text-text-muted/50 mt-0.5">
+        {task.time ? formatTime12(task.time) : ''}{task.time && task.estimatedMinutes > 0 ? ' · ' : ''}{task.estimatedMinutes > 0 ? `${task.estimatedMinutes}min` : ''}
+      </p>
     </div>
   )
 }

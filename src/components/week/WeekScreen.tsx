@@ -6,6 +6,7 @@ import { FadeIn } from '../ui/FadeIn'
 import { Button } from '../ui/Button'
 import { exportWeeklySchedule } from '../../lib/export'
 import { scheduleService } from '../../services/ScheduleService'
+import { goalService } from '../../services/GoalService'
 import { useGoalsStore } from '../../stores/goals'
 import { getGoalColor } from '../../lib/colors'
 
@@ -60,9 +61,10 @@ export function WeekScreen() {
   const [view, setView] = useState<View>('week')
   const [weekOffset, setWeekOffset] = useState(0)
   const [weekBlocks, setWeekBlocks] = useState<Array<{ day: string; label: string; time: { start: string; end: string }; goalId: number | null; status: string; type: string }>>([])
-  const [loading, setLoading] = useState(false)
+  const [goalTasks, setGoalTasks] = useState<Array<{ day: string; label: string; time: string; goalId: number; color: string; done: boolean }>>([])
+  const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [hasSchedule, setHasSchedule] = useState(true)
+  const [hasSchedule, setHasSchedule] = useState(false)
 
   const goals = useGoalsStore(s => s.goals)
   const getGoalDisplayName = useGoalsStore(s => s.getGoalDisplayName)
@@ -78,18 +80,44 @@ export function WeekScreen() {
   async function loadWeek() {
     setLoading(true)
     try {
-      const data = await scheduleService.getWeek(formatWeekOf(currentMonday)) as { blocks: typeof weekBlocks } | null
-      if (data && data.blocks) {
+      let data = await scheduleService.getWeek(formatWeekOf(currentMonday)) as { blocks: typeof weekBlocks } | null
+      if (data && data.blocks && data.blocks.length > 0) {
         setWeekBlocks(data.blocks)
         setHasSchedule(true)
       } else {
-        setWeekBlocks([])
-        setHasSchedule(false)
+        if (goals.length > 0 && weekOffset === 0) {
+          try {
+            data = await scheduleService.generate(formatWeekOf(currentMonday)) as { blocks: typeof weekBlocks }
+            setWeekBlocks(data?.blocks || [])
+            setHasSchedule(true)
+          } catch {
+            setWeekBlocks([])
+            setHasSchedule(false)
+          }
+        } else {
+          setWeekBlocks([])
+          setHasSchedule(false)
+        }
       }
     } catch {
       setWeekBlocks([])
       setHasSchedule(false)
     }
+
+    try {
+      const allTasks: typeof goalTasks = []
+      for (const g of goals) {
+        const tasks = await goalService.listTasks(Number(g.id)) as Array<{ dayOfWeek: string; text: string; scheduledTime: string; status: string }>
+        const color = getGoalColor(g.colorId).bg
+        for (const t of tasks) {
+          if (t.dayOfWeek) {
+            allTasks.push({ day: t.dayOfWeek, label: t.text, time: t.scheduledTime || '', goalId: Number(g.id), color, done: t.status === 'DONE' })
+          }
+        }
+      }
+      setGoalTasks(allTasks)
+    } catch {}
+
     setLoading(false)
   }
 
@@ -107,11 +135,12 @@ export function WeekScreen() {
     return DAY_NAMES.map((day, i) => {
       const date = addDays(currentMonday, i)
       const dayKey = day.toUpperCase().slice(0, 3)
-      const dayTasks: WeekTask[] = weekBlocks
+
+      const tasksFromBlocks: WeekTask[] = weekBlocks
         .filter(b => b.day === dayKey)
         .map(b => {
           const goal = goals.find(g => Number(g.id) === b.goalId)
-          const color = goal ? getGoalColor(goal.colorId).bg : (b.type === 'LIFE_BLOCK' ? '#9C8F80' : '#9C8F80')
+          const color = goal ? getGoalColor(goal.colorId).bg : '#9C8F80'
           return {
             label: b.label,
             time: formatTime12(b.time?.start || '00:00'),
@@ -120,10 +149,23 @@ export function WeekScreen() {
             isLifeBlock: b.type === 'LIFE_BLOCK',
           }
         })
+
+      const tasksFromGoals: WeekTask[] = hasSchedule ? [] : goalTasks
+        .filter(t => t.day === day)
+        .map(t => ({
+          label: t.label,
+          time: t.time ? formatTime12(t.time) : '',
+          color: t.color,
+          done: t.done,
+          isLifeBlock: false,
+        }))
+
+      const allTasks = [...tasksFromBlocks, ...tasksFromGoals]
         .sort((a, b) => a.time.localeCompare(b.time))
-      return { day, date: date.getDate().toString(), fullDate: date, tasks: dayTasks }
+
+      return { day, date: date.getDate().toString(), fullDate: date, tasks: allTasks }
     })
-  }, [currentMonday, weekBlocks, goals])
+  }, [currentMonday, weekBlocks, goalTasks, goals, hasSchedule])
 
   return (
     <PageTransition>
@@ -134,8 +176,8 @@ export function WeekScreen() {
           <span className="text-sm text-text-muted">{formatWeekRange(currentMonday)}</span>
           <button onClick={() => setWeekOffset(w => w + 1)} className="text-text-muted hover:text-text-primary cursor-pointer text-sm">→</button>
           <div className="flex items-center gap-3 ml-auto">
-            {hasSchedule && <Button variant="ghost" size="sm" label="Export ↓" onClick={() => exportWeeklySchedule(weekBlocks, goals, formatWeekRange(currentMonday))} />}
-            {!hasSchedule && !loading && <Button variant="primary" size="sm" label={generating ? 'Generating...' : 'Generate schedule'} onClick={handleGenerate} disabled={generating} />}
+            <Button variant="ghost" size="sm" label="Export ↓" onClick={() => exportWeeklySchedule(weekBlocks, goals, formatWeekRange(currentMonday))} />
+            <Button variant={hasSchedule ? 'ghost' : 'primary'} size="sm" label={generating ? 'Generating...' : hasSchedule ? 'Regenerate' : 'Generate schedule'} onClick={handleGenerate} disabled={generating} />
             {(['week', 'month'] as const).map(v => (
               <button key={v} onClick={() => setView(v)}
                 className={`text-[0.625rem] px-2 py-1 rounded cursor-pointer transition-colors ${view === v ? 'text-text-primary font-medium' : 'text-text-muted hover:text-text-muted'}`}
@@ -150,14 +192,6 @@ export function WeekScreen() {
               {loading ? (
                 <div className="flex items-center justify-center py-16">
                   <Cat state="thinking" size={36} />
-                </div>
-              ) : !hasSchedule ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <Cat state="idle" size={40} />
-                  <p className="text-sm text-text-muted mt-4">No schedule for this week yet.</p>
-                  <div className="mt-4">
-                    <Button variant="primary" size="sm" label={generating ? 'Generating...' : 'Generate schedule'} onClick={handleGenerate} disabled={generating} />
-                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-7 gap-4">

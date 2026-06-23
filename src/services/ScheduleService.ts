@@ -8,8 +8,9 @@ interface ApiResponse<T> {
 }
 
 export const scheduleService = {
-  async getWeek(weekOf: string) {
-    const res = await axiosService.get<ApiResponse<unknown>>(endpoints.schedule.week(weekOf))
+  async getWeek(weekOf: string, goalId?: number) {
+    const url = goalId ? `${endpoints.schedule.week(weekOf)}?goal_id=${goalId}` : endpoints.schedule.week(weekOf)
+    const res = await axiosService.get<ApiResponse<unknown>>(url)
     return res.data
   },
 
