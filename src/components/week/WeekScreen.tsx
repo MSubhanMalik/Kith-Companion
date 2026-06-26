@@ -5,6 +5,7 @@ import { Cat } from '../cat/Cat'
 import { FadeIn } from '../ui/FadeIn'
 import { Button } from '../ui/Button'
 import { exportWeeklySchedule } from '../../lib/export'
+import { exportService } from '../../services/ExportService'
 import { scheduleService } from '../../services/ScheduleService'
 import { goalService } from '../../services/GoalService'
 import { useGoalsStore } from '../../stores/goals'
@@ -63,7 +64,6 @@ export function WeekScreen() {
   const [weekBlocks, setWeekBlocks] = useState<Array<{ day: string; label: string; time: { start: string; end: string }; goalId: number | null; status: string; type: string }>>([])
   const [goalTasks, setGoalTasks] = useState<Array<{ day: string; label: string; time: string; goalId: number; color: string; done: boolean }>>([])
   const [loading, setLoading] = useState(true)
-  const [generating, setGenerating] = useState(false)
   const [hasSchedule, setHasSchedule] = useState(false)
 
   const goals = useGoalsStore(s => s.goals)
@@ -121,15 +121,6 @@ export function WeekScreen() {
     setLoading(false)
   }
 
-  async function handleGenerate() {
-    setGenerating(true)
-    try {
-      const data = await scheduleService.generate(formatWeekOf(currentMonday)) as { blocks: typeof weekBlocks }
-      setWeekBlocks(data?.blocks || [])
-      setHasSchedule(true)
-    } catch {}
-    setGenerating(false)
-  }
 
   const weekCols = useMemo(() => {
     return DAY_NAMES.map((day, i) => {
@@ -176,8 +167,8 @@ export function WeekScreen() {
           <span className="text-sm text-text-muted">{formatWeekRange(currentMonday)}</span>
           <button onClick={() => setWeekOffset(w => w + 1)} className="text-text-muted hover:text-text-primary cursor-pointer text-sm">→</button>
           <div className="flex items-center gap-3 ml-auto">
+            <button onClick={() => exportService.exportWeekReport(formatWeekOf(currentMonday), formatWeekRange(currentMonday)).catch(() => {})} className="text-xs text-text-muted hover:text-olive cursor-pointer">Report ↓</button>
             <Button variant="ghost" size="sm" label="Export ↓" onClick={() => exportWeeklySchedule(weekBlocks, goals, formatWeekRange(currentMonday))} />
-            <Button variant={hasSchedule ? 'ghost' : 'primary'} size="sm" label={generating ? 'Generating...' : hasSchedule ? 'Regenerate' : 'Generate schedule'} onClick={handleGenerate} disabled={generating} />
             {(['week', 'month'] as const).map(v => (
               <button key={v} onClick={() => setView(v)}
                 className={`text-[0.625rem] px-2 py-1 rounded cursor-pointer transition-colors ${view === v ? 'text-text-primary font-medium' : 'text-text-muted hover:text-text-muted'}`}

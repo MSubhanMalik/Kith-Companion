@@ -24,6 +24,7 @@ export function EndOfDayScreen() {
   const [weekSummary, setWeekSummary] = useState('')
   const [loading, setLoading] = useState(true)
   const [closing, setClosing] = useState(false)
+  const [alreadyClosed, setAlreadyClosed] = useState(false)
 
   const goals = useGoalsStore(s => s.goals)
   const getGoalDisplayName = useGoalsStore(s => s.getGoalDisplayName)
@@ -35,7 +36,8 @@ export function EndOfDayScreen() {
   async function loadToday() {
     setLoading(true)
     try {
-      const data = await todayService.getToday() as { blocks: Array<{ id: number; label: string; goalId: number; status: string; type: string }>; completions: Record<string, string> }
+      const data = await todayService.getToday() as { dayLog: { nightDoneAt: string | null }; blocks: Array<{ id: number; label: string; goalId: number; status: string; type: string }>; completions: Record<string, string> }
+      if (data.dayLog?.nightDoneAt) setAlreadyClosed(true)
       const mapped: ReviewBlock[] = (data.blocks || []).map(b => {
         const goal = goals.find(g => Number(g.id) === b.goalId)
         const goalColor = goal ? getGoalColor(goal.colorId).bg : '#9C8F80'
@@ -135,7 +137,11 @@ export function EndOfDayScreen() {
         </FadeIn>
 
         <FadeIn delay={0.5} y={0} className="mt-6">
-          <Button variant="primary" label={closing ? 'Closing...' : 'Close the day'} onClick={handleCloseDay} disabled={closing} />
+          {alreadyClosed ? (
+            <p className="text-sm text-text-muted">Day already closed. <a href="#app/home" className="text-olive hover:text-olive-hover cursor-pointer">Back to today →</a></p>
+          ) : (
+            <Button variant="primary" label={closing ? 'Closing...' : 'Close the day'} onClick={handleCloseDay} disabled={closing} />
+          )}
         </FadeIn>
       </div>
     </PageTransition>

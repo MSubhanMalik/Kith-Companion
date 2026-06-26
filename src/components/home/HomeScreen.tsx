@@ -6,11 +6,10 @@ import { ScreenHeader } from '../ui/ScreenHeader'
 import { FadeIn } from '../ui/FadeIn'
 import { SectionLabel } from '../ui/SectionLabel'
 import { TaskModal } from '../goals/TaskModal'
-import { Button } from '../ui/Button'
 import { useGoalsStore } from '../../stores/goals'
 import { getGoalColor } from '../../lib/colors'
 import { todayService } from '../../services/TodayService'
-import { scheduleService } from '../../services/ScheduleService'
+import { exportService } from '../../services/ExportService'
 import { useCatStore } from '../../stores/cat'
 
 interface Block {
@@ -31,6 +30,15 @@ function formatTime12(time24: string): string {
   return m === 0 ? `${hour} ${suffix}` : `${hour}:${String(m).padStart(2, '0')} ${suffix}`
 }
 
+function getThisMonday(): string {
+  const today = new Date()
+  const day = today.getDay()
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(today)
+  monday.setDate(diff)
+  return monday.toISOString().split('T')[0]
+}
+
 export function HomeScreen() {
   const [blocks, setBlocks] = useState<Block[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,6 +46,10 @@ export function HomeScreen() {
 
   const goals = useGoalsStore(s => s.goals)
   const getGoalDisplayName = useGoalsStore(s => s.getGoalDisplayName)
+
+  function handleReport() {
+    exportService.exportWeekReport(getThisMonday()).catch(() => {})
+  }
 
   useEffect(() => {
     loadToday()
@@ -128,7 +140,10 @@ export function HomeScreen() {
   if (blocks.length === 0 && goals.length > 0) {
     return (
       <PageTransition>
-        <EmptySchedule onGenerated={loadToday} />
+        <div className="pt-6 pb-12 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 10rem)' }}>
+          <Cat state="thinking" size={48} />
+          <p className="text-text-secondary mt-6 text-center">Kith is setting up your week...</p>
+        </div>
       </PageTransition>
     )
   }
@@ -140,9 +155,12 @@ export function HomeScreen() {
           catState="idle"
           message={`${new Date().toLocaleDateString('en-US', { weekday: 'long' })} · ${doneCount} of ${blocks.length} done`}
           right={
-            doneCount >= blocks.length - 1
-              ? <a href="#app/review" className="text-xs text-olive font-medium hover:text-olive-hover cursor-pointer">Close the day →</a>
-              : <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer">review</a>
+            <>
+              <button onClick={handleReport} className="text-xs text-text-muted hover:text-olive cursor-pointer">Report ↓</button>
+              {doneCount >= blocks.length - 1
+                ? <a href="#app/review" className="text-xs text-olive font-medium hover:text-olive-hover cursor-pointer">Close the day →</a>
+                : <a href="#app/review" className="text-[0.625rem] text-text-muted hover:text-olive cursor-pointer">review</a>}
+            </>
           }
         />
 
@@ -227,60 +245,5 @@ export function HomeScreen() {
         />
       )}
     </PageTransition>
-  )
-}
-
-function EmptySchedule({ onGenerated }: { onGenerated: () => void }) {
-  const [generating, setGenerating] = useState(false)
-  const goals = useGoalsStore(s => s.goals)
-  const getGoalDisplayName = useGoalsStore(s => s.getGoalDisplayName)
-
-  function getThisMonday(): string {
-    const today = new Date()
-    const day = today.getDay()
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1)
-    const monday = new Date(today)
-    monday.setDate(diff)
-    return monday.toISOString().split('T')[0]
-  }
-
-  async function handleGenerate() {
-    setGenerating(true)
-    try {
-      await scheduleService.generate(getThisMonday())
-      onGenerated()
-    } catch {}
-    setGenerating(false)
-  }
-
-  return (
-    <div className="pt-6 pb-12 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 10rem)' }}>
-      <Cat state="alert" size={48} />
-      <p className="text-text-primary font-semibold mt-6">
-        {goals.length} {goals.length === 1 ? 'goal' : 'goals'}, no schedule yet.
-      </p>
-      <p className="text-sm text-text-muted mt-1 mb-6 text-center max-w-[20rem]">
-        Generate this week's schedule to see your tasks for today.
-      </p>
-
-      <div className="flex flex-wrap gap-3 mb-8 justify-center">
-        {goals.map(g => {
-          const color = getGoalColor(g.colorId)
-          return (
-            <span key={g.id} className="text-xs px-3 py-1 rounded-full" style={{ color: color.bg, backgroundColor: `${color.bg}10` }}>
-              {getGoalDisplayName(g)}
-            </span>
-          )
-        })}
-      </div>
-
-      <Button
-        variant="primary"
-        size="sm"
-        label={generating ? 'Generating...' : 'Generate this week'}
-        onClick={handleGenerate}
-        disabled={generating}
-      />
-    </div>
   )
 }

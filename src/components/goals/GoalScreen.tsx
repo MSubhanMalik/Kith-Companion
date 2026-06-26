@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, closestCenter, useDraggable, useDroppable } from '@dnd-kit/core'
 import { PageTransition } from '../ui/PageTransition'
 import { ScreenHeader } from '../ui/ScreenHeader'
 import { FadeIn } from '../ui/FadeIn'
 import { SectionLabel } from '../ui/SectionLabel'
 import { Button } from '../ui/Button'
-import { exportGoalSchedule } from '../../lib/export'
 import { useGoalsStore } from '../../stores/goals'
 import { getGoalColor } from '../../lib/colors'
 import { goalService } from '../../services/GoalService'
 import { scheduleService } from '../../services/ScheduleService'
+import { exportService } from '../../services/ExportService'
 import { Cat } from '../cat/Cat'
 import { useChatOpen, useChatRefresh } from '../app/AppShell'
-
-type ViewMode = 'plan' | 'tasks'
 
 interface Task {
   id: string
@@ -53,19 +51,11 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
-  const [breakingDown, setBreakingDown] = useState(false)
-  const [rescheduling, setRescheduling] = useState(false)
-  const [viewMode, setViewMode] = useState<ViewMode>('plan')
-  const [newTask, setNewTask] = useState('')
-  const [newDay, setNewDay] = useState('Mon')
-  const [newDesc, setNewDesc] = useState('')
-  const [newOutput, setNewOutput] = useState('')
   const [newNote, setNewNote] = useState('')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-  const [showPanel, setShowPanel] = useState(true)
   const chatOpen = useChatOpen()
   const chatRefresh = useChatRefresh()
-  const panelVisible = showPanel && !chatOpen
+  const panelVisible = !!selectedTask && !chatOpen
 
   useEffect(() => {
     if (numericGoalId) loadData()
@@ -97,28 +87,6 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
       setNotes(notesData as Note[])
     } catch {}
     setLoading(false)
-  }
-
-  async function handleBreakdown() {
-    setBreakingDown(true)
-    try {
-      await goalService.breakdownGoal(numericGoalId)
-      await loadData()
-    } catch {}
-    setBreakingDown(false)
-  }
-
-  async function handleReschedule() {
-    setRescheduling(true)
-    try {
-      const today = new Date()
-      const day = today.getDay()
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1)
-      const monday = new Date(today)
-      monday.setDate(diff)
-      await scheduleService.reschedule(monday.toISOString().split('T')[0])
-    } catch {}
-    setRescheduling(false)
   }
 
   async function toggleDone(id: string) {
@@ -171,23 +139,6 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
     goalService.reorderTasks(numericGoalId, orderedIds).catch(() => {})
   }
 
-  async function addTask() {
-    if (!newTask.trim()) return
-    try {
-      const created = await goalService.createTask(numericGoalId, {
-        text: newTask.trim(),
-        description: newDesc.trim() || undefined,
-        output: newOutput.trim() || undefined,
-        day_of_week: newDay,
-      }) as { id: number; text: string; dayOfWeek: string; scheduledTime: string; description: string; output: string }
-      setTasks(prev => [...prev, {
-        id: String(created.id), text: created.text, day: created.dayOfWeek || '', time: created.scheduledTime || '',
-        done: false, description: created.description || '', output: created.output || '', estimatedMinutes: 60, weekNumber: null,
-      }])
-      setNewTask(''); setNewDesc(''); setNewOutput('')
-    } catch {}
-  }
-
   async function addNote() {
     if (!newNote.trim()) return
     try {
@@ -209,14 +160,6 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
     )
   }
 
-  const tasksByDay: Record<string, Task[]> = {}
-  for (const t of tasks) {
-    const d = t.day || 'Unassigned'
-    if (!tasksByDay[d]) tasksByDay[d] = []
-    tasksByDay[d].push(t)
-  }
-  const dayGroups = [...DAYS.filter(d => tasksByDay[d]), ...(tasksByDay['Unassigned'] ? ['Unassigned'] : [])]
-
   return (
     <PageTransition>
       <div className="pt-6 pb-12">
@@ -224,102 +167,26 @@ export function GoalScreen({ goalId, onBack }: GoalScreenProps) {
 
         <div className="flex items-center justify-between mb-6">
           <Button variant="ghost" size="sm" label="← back" onClick={onBack} />
-          <div className="flex items-center gap-3">
-            {tasks.length > 0 && (
-              <div className="flex gap-1">
-                {(['plan', 'tasks'] as const).map(v => (
-                  <button key={v} onClick={() => { setViewMode(v); setSelectedTask(null) }}
-                    className={`text-[0.625rem] px-2 py-1 rounded cursor-pointer transition-colors ${viewMode === v ? 'text-text-primary font-medium' : 'text-text-muted hover:text-text-muted'}`}
-                  >{v}</button>
-                ))}
-              </div>
-            )}
-            <Button variant="ghost" size="sm" label={showPanel ? 'Hide panel' : 'Show panel'} onClick={() => setShowPanel(!showPanel)} />
-            <Button variant="ghost" size="sm" label="Export ↓" onClick={() => exportGoalSchedule(goalLabel, tasks, goalColor)} />
-            <Button variant="primary" size="sm" label={rescheduling ? 'Rescheduling...' : 'Adjust times'} onClick={handleReschedule} disabled={rescheduling} />
-          </div>
+          <button onClick={() => exportService.exportGoalReport(numericGoalId, goalColor).catch(() => {})} className="text-xs text-text-muted hover:text-olive cursor-pointer">Report ↓</button>
         </div>
 
         <GoalHeader goal={goal} goalColor={goalColor} goalLabel={goalLabel} done={done} total={tasks.length} />
 
         {tasks.length === 0 && (
           <FadeIn delay={0.1} className="flex flex-col items-center py-12">
-            <Cat state="idle" size={40} />
-            <p className="text-sm text-text-muted mt-4">No tasks yet. Let AI break down this goal.</p>
-            <div className="mt-4">
-              <Button variant="primary" size="sm" label={breakingDown ? 'Breaking down...' : 'Break down with AI'} onClick={handleBreakdown} disabled={breakingDown} />
-            </div>
+            <Cat state="thinking" size={40} />
+            <p className="text-sm text-text-muted mt-4">Kith is breaking down this goal...</p>
           </FadeIn>
         )}
 
         {tasks.length > 0 && (
-          <AnimatePresence mode="wait">
-            {viewMode === 'plan' ? (
-              <motion.div key="plan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="flex gap-6">
-                  <div className="flex-1 min-w-0">
-                    <WeekPlanGrid tasks={tasks} goalColor={goalColor} selectedTask={selectedTask} onSelectTask={setSelectedTask} onReorderAll={handleReorderTasks} onMoveTask={handleMoveTask} goalCreatedAt={goal?.createdAt} goalId={numericGoalId} />
-                  </div>
+          <div className="flex gap-6">
+            <div className="flex-1 min-w-0">
+              <WeekPlanGrid tasks={tasks} goalColor={goalColor} selectedTask={selectedTask} onSelectTask={setSelectedTask} onReorderAll={handleReorderTasks} onMoveTask={handleMoveTask} goalCreatedAt={goal?.createdAt} goalId={numericGoalId} />
+            </div>
 
-                  {panelVisible && <SidePanel selectedTask={selectedTask} goalColor={goalColor} notes={notes} newNote={newNote} onNewNoteChange={setNewNote} onAddNote={addNote} onUpdate={updateSelected} onClose={() => { saveSelectedTask(); setSelectedTask(null) }} onRemove={() => selectedTask && removeTask(selectedTask.id)} onToggleDone={() => selectedTask && toggleDone(selectedTask.id)} />}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div key="tasks" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="flex gap-6">
-                  <div className="flex-1 min-w-0">
-                    <div className="grid grid-cols-[3rem_1fr_1fr_8rem_2rem] gap-x-4 mb-3 border-b border-border/40 pb-2">
-                      <SectionLabel>Day</SectionLabel>
-                      <SectionLabel>Task</SectionLabel>
-                      <SectionLabel>Details</SectionLabel>
-                      <SectionLabel>Output</SectionLabel>
-                      <span />
-                    </div>
-
-                    <Reorder.Group axis="y" values={tasks} onReorder={handleReorderTasks}>
-                      {tasks.map((task) => (
-                        <Reorder.Item key={task.id} value={task} className="list-none">
-                          <div
-                            className={`grid grid-cols-[3rem_1fr_1fr_8rem_2rem] gap-x-4 items-center py-3 border-b border-border/20 cursor-grab active:cursor-grabbing transition-colors overflow-hidden ${selectedTask?.id === task.id ? 'bg-olive/[0.03]' : 'hover:bg-surface-hover'}`}
-                            onClick={() => setSelectedTask(task)}>
-                            <span className={`text-xs pt-0.5 ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.day || '—'}</span>
-                            <span className={`text-sm ${task.done ? 'text-text-muted/50 line-through' : 'text-text-primary font-medium'}`}>{task.text}</span>
-                            <span className={`text-xs truncate ${task.done ? 'text-text-muted/50' : 'text-text-muted'}`}>{task.description || '—'}</span>
-                            <span className="text-xs truncate" style={{ color: task.done ? 'var(--color-text-muted)' : goalColor }}>{task.output || '—'}</span>
-                            <div className="flex justify-center pt-0.5">
-                              <motion.div className="w-4 h-4 rounded-full flex items-center justify-center cursor-pointer"
-                                style={task.done ? { backgroundColor: `${goalColor}18` } : { border: '1.5px solid var(--color-border)' }}
-                                onClick={e => { e.stopPropagation(); toggleDone(task.id) }}
-                                whileTap={{ scale: 1.4 }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
-                                {task.done && <span className="text-[0.375rem]" style={{ color: goalColor }}>✓</span>}
-                              </motion.div>
-                            </div>
-                          </div>
-                        </Reorder.Item>
-                      ))}
-                    </Reorder.Group>
-
-                    <div className="grid grid-cols-[3rem_1fr_1fr_8rem_2rem] gap-x-4 items-center py-3 border-b border-border/20">
-                      <select value={newDay} onChange={e => setNewDay(e.target.value)} className="text-xs text-text-muted bg-transparent focus:outline-none cursor-pointer">
-                        {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                      <input value={newTask} onChange={e => setNewTask(e.target.value)} placeholder="Task name..."
-                        className="text-sm text-text-primary bg-transparent focus:outline-none placeholder:text-text-muted/50" />
-                      <input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Details..."
-                        className="text-xs text-text-muted bg-transparent focus:outline-none placeholder:text-text-muted/50" />
-                      <input value={newOutput} onChange={e => setNewOutput(e.target.value)} placeholder="Output..."
-                        onKeyDown={e => e.key === 'Enter' && addTask()}
-                        className="text-xs bg-transparent focus:outline-none placeholder:text-text-muted/50" style={{ color: goalColor }} />
-                      <button onClick={addTask} className="text-xs text-olive hover:text-olive-hover cursor-pointer text-center">+</button>
-                    </div>
-                  </div>
-
-                  {panelVisible && <SidePanel selectedTask={selectedTask} goalColor={goalColor} notes={notes} newNote={newNote} onNewNoteChange={setNewNote} onAddNote={addNote} onUpdate={updateSelected} onClose={() => { saveSelectedTask(); setSelectedTask(null) }} onRemove={() => selectedTask && removeTask(selectedTask.id)} onToggleDone={() => selectedTask && toggleDone(selectedTask.id)} />}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            {panelVisible && <SidePanel selectedTask={selectedTask} goalColor={goalColor} notes={notes} newNote={newNote} onNewNoteChange={setNewNote} onAddNote={addNote} onUpdate={updateSelected} onClose={() => { saveSelectedTask(); setSelectedTask(null) }} onRemove={() => selectedTask && removeTask(selectedTask.id)} onToggleDone={() => selectedTask && toggleDone(selectedTask.id)} />}
+          </div>
         )}
       </div>
     </PageTransition>
