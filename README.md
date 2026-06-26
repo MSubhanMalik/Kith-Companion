@@ -4,6 +4,10 @@ A desktop learning companion that lives on your screen. Pick a pet — cat, robo
 
 Think of it as a **GPS for mastery**. Kith knows your destination, knows where you are, lays the road ahead, tells you the next turn, and reroutes when you drift — but you still drive.
 
+
+# Backend 
+Backend Repository - https://github.com/MSubhanMalik/kith-be
+
 ## Stack
 
 - **React 19** + **TypeScript** + **Vite**
@@ -23,3 +27,5 @@ The pet floats on your desktop as a small transparent window. It breathes, blink
 - **Hover** to make it happy
 
 Each pet has its own sounds and visual style but shares the same state machine and behavior system.
+
+
